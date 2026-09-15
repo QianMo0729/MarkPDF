@@ -70,4 +70,6 @@ git push origin v0.1.1
 
 工作流仅 Release job 使用 `contents: write`，并使用 GitHub 自动提供的 `GITHUB_TOKEN`；不需要个人 API Key。构建先写入草稿，安装器与校验文件都上传成功后才公开。工作流使用已核验并固定提交 SHA 的 GitHub / Tauri 官方 Actions。首次托管运行是否成功，以 Actions 记录和 Release 实际附件为准。
 
+原生库更换的实际链接证据见[Windows 原生链接审计](native-link-audit.md)。
+
 接口依据：[Tauri GitHub pipeline](https://v2.tauri.app/distribute/pipelines/github/)、[tauri-action 输入参数](https://github.com/tauri-apps/tauri-action)、[GitHub setup-node](https://github.com/actions/setup-node)、[GitHub upload-artifact](https://github.com/actions/upload-artifact)。
