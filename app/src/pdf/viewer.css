@@ -1,0 +1,130 @@
+.pdf-host {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  background: var(--slide-bg);
+}
+.pdf-container {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  padding: 16px 0;
+}
+.pdf-container .pdfViewer {
+  --scale-factor: 1;
+}
+.pdf-container .pdfViewer .page {
+  margin: 0 auto 12px;
+  border: none;
+  background-color: #fff;
+  box-shadow: none;
+  outline: 1px solid var(--border);
+  user-select: text;
+}
+.pdf-container .pdfViewer.scrollPage .page {
+  margin-bottom: 0;
+}
+.pdf-container .textLayer ::selection {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.pdf-container .textLayer .highlight {
+  background: color-mix(in srgb, var(--highlight) 45%, transparent);
+  border-radius: 2px;
+}
+.pdf-container .textLayer .highlight.selected {
+  background: color-mix(in srgb, var(--mark-confused) 55%, transparent);
+}
+
+.pdf-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.pdf-skeleton {
+  width: min(60%, 520px);
+  aspect-ratio: 16 / 9;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--surface2) 25%, var(--surface) 50%, var(--surface2) 75%);
+  background-size: 200% 100%;
+  animation: pdf-shimmer 1.2s linear infinite;
+}
+@keyframes pdf-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.page-pill {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+}
+.page-pill-label {
+  border: none;
+  background: transparent;
+  color: var(--text);
+  padding: 0 8px;
+  height: 28px;
+  cursor: pointer;
+  border-radius: var(--radius-control);
+}
+.page-pill-label:hover {
+  background: var(--surface2);
+}
+.page-pill-input {
+  width: 64px;
+  height: 28px;
+  text-align: center;
+}
+
+.selection-toolbar {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  display: flex;
+  height: 44px;
+  padding: 0 4px;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  z-index: 5;
+}
+.selection-toolbar-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-width: 48px;
+  border: none;
+  background: transparent;
+  color: var(--text2);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  padding: 0 6px;
+}
+.selection-toolbar-btn:hover:not(:disabled) {
+  background: var(--surface2);
+  color: var(--text);
+}
+.selection-toolbar-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

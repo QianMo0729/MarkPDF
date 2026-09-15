@@ -1,0 +1,121 @@
+@import "katex/dist/katex.min.css";
+
+/* Map atomic-editor's variables onto MarkPDF tokens (docs/SPEC.md 6.1 / 6.5.7). */
+.md-editor {
+  --md-editor-size: 15px;
+  --atomic-editor-font: var(--font-sans);
+  --atomic-editor-font-mono: var(--font-mono);
+  --atomic-editor-body-size: var(--md-editor-size);
+  --atomic-editor-body-leading: 1.6;
+  --atomic-editor-measure: 680px;
+  --atomic-editor-fg: var(--text);
+  --atomic-editor-fg-muted: var(--text2);
+  --atomic-editor-fg-faint: var(--text3);
+  --atomic-editor-bg: transparent;
+  --atomic-editor-bg-panel: var(--surface2);
+  --atomic-editor-bg-surface: var(--surface2);
+  --atomic-editor-border: var(--border);
+  --atomic-editor-accent: var(--accent);
+  --atomic-editor-accent-bright: var(--accent);
+  --atomic-editor-accent-soft: var(--accent-soft);
+  --atomic-editor-link: var(--accent);
+  --atomic-editor-link-hover: var(--accent);
+  --atomic-editor-code-bg: var(--surface2);
+  --atomic-editor-selection-bg: var(--accent-soft);
+  --atomic-editor-search-bg: var(--highlight-soft);
+  --atomic-editor-search-bg-active: color-mix(in srgb, var(--highlight) 50%, transparent);
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-sans);
+  font-size: var(--md-editor-size);
+  color: var(--text);
+  user-select: text;
+}
+.md-editor > * {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.md-editor .cm-editor {
+  height: 100%;
+  background: transparent;
+  outline: none;
+}
+.md-editor .cm-scroller {
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  padding: 12px 16px;
+}
+.md-editor.compact .cm-scroller {
+  padding: 6px;
+  line-height: 1.4;
+}
+.md-editor .cm-content {
+  max-width: 680px;
+  caret-color: var(--accent);
+}
+.md-editor .cm-placeholder {
+  color: var(--text3);
+}
+.md-editor .cm-line {
+  padding: 0;
+}
+.md-editor .cm-editor.cm-focused {
+  outline: none;
+}
+.md-editor.source .cm-scroller {
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+.md-editor.source .cm-content {
+  max-width: none;
+}
+
+/* timestamp chips */
+.md-chip-time {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--highlight-soft);
+  color: var(--text);
+  font-size: 0.86em;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  vertical-align: baseline;
+}
+.md-chip-time.clickable {
+  cursor: pointer;
+}
+.md-chip-time.clickable:hover {
+  background: color-mix(in srgb, var(--highlight) 40%, transparent);
+}
+.md-chip-src {
+  color: var(--highlight);
+  font-variant-numeric: tabular-nums;
+}
+
+/* math */
+.md-math-inline {
+  padding: 0 2px;
+}
+.md-math-block {
+  display: block;
+  text-align: center;
+  padding: 8px 0;
+  overflow-x: auto;
+}
+.md-math-src {
+  color: var(--text2);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+.md-math-error {
+  color: var(--record);
+}
+
+/* replay: lines added since the previous snapshot */
+.md-editor .md-line-added {
+  background: var(--highlight-soft);
+  border-radius: 3px;
+}

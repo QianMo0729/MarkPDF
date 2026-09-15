@@ -1,0 +1,69 @@
+[
+  {
+    "id": "en-zh-Hans-2.2",
+    "from": "en",
+    "to": "zh-Hans",
+    "version": "2.2",
+    "label": "英语 → 简体中文",
+    "files": [
+      {
+        "type": "model",
+        "name": "model.enzh.intgemm.alphas.bin",
+        "size": 43849787,
+        "sha256": "4e5accc141373565ddc8fa1565bceaa8d0c3482a82cab8131c719ebcc6c2157c",
+        "url": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/translations-models/a7ff7d5e-e67e-406c-a34b-a7edea35b10e.bin"
+      },
+      {
+        "type": "srcvocab",
+        "name": "srcvocab.enzh.spm",
+        "size": 806952,
+        "sha256": "bd9b65504acc6d9726dd281f7defc2adb7c2c22d0688fe2f84697de25197c8c5",
+        "url": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/translations-models/ea98c52c-58dc-45d5-af23-38f2b029d020.spm"
+      },
+      {
+        "type": "trgvocab",
+        "name": "trgvocab.enzh.spm",
+        "size": 772004,
+        "sha256": "aded6993c36e440284d11cec3f6b8aef9c0e43188a772d80be342a713adf223d",
+        "url": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/translations-models/bddbda68-d4d2-4317-a0a1-119caa47525e.spm"
+      },
+      {
+        "type": "lex",
+        "name": "lex.50.50.enzh.s2t.bin",
+        "size": 6506248,
+        "sha256": "4a5e5827788060f1d718a8132b69440929387514a045796e9b77f935db68c055",
+        "url": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/translations-models/da8fccc0-31df-4665-9703-96d36606e019.bin"
+      }
+    ]
+  },
+  {
+    "id": "zh-Hans-en-2.0",
+    "from": "zh-Hans",
+    "to": "en",
+    "version": "2.0",
+    "label": "简体中文 → 英语",
+    "files": [
+      {
+        "type": "lex",
+        "name": "lex.50.50.zhen.s2t.bin",
+        "size": 9220016,
+        "sha256": "cdcad3592dc2bc4676c34c4d37203f7649ee989195cf083cbb60f1ea011f976b",
+        "url": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/translations-models/645c720c-6920-470d-9bb7-3f9a6b0a9cae.bin"
+      },
+      {
+        "type": "vocab",
+        "name": "vocab.zhen.spm",
+        "size": 1359697,
+        "sha256": "dff594318ab7d8b7b60b844ab98ebe6b932ae8045fab15235404c787715965b3",
+        "url": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/translations-models/88a4925d-ff4a-4c76-8813-95e2ac600b14.spm"
+      },
+      {
+        "type": "model",
+        "name": "model.zhen.intgemm.alphas.bin",
+        "size": 59504955,
+        "sha256": "3535442962ec8f4a553cc19b206befcac689ee9cddaea44fa91e21527fc30ac2",
+        "url": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/translations-models/052699bf-6f88-4c74-bb14-e49a943b4f59.bin"
+      }
+    ]
+  }
+]

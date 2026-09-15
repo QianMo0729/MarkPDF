@@ -1,0 +1,5 @@
+# Keep this shared configuration independent of the developer's user directory.
+# sherpa-onnx-sys downloads the version pinned by Cargo.lock from its official
+# GitHub release unless SHERPA_ONNX_LIB_DIR or SHERPA_ONNX_ARCHIVE_DIR is supplied.
+# app/scripts/build-windows.ps1 also discovers the optional per-user build cache.
+# See docs/BUILDING.md for Windows prerequisites and offline-library overrides.

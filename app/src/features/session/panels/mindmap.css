@@ -1,0 +1,170 @@
+.mindmap-panel {
+  user-select: none;
+}
+.mm-head {
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+}
+.mm-head .icon-btn {
+  width: 30px;
+  height: 30px;
+}
+.mm-canvas {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg);
+  background-image: radial-gradient(color-mix(in srgb, var(--border) 60%, transparent) 1px, transparent 1px);
+  background-size: 20px 20px;
+  cursor: grab;
+  outline: none;
+}
+.mm-canvas:active {
+  cursor: grabbing;
+}
+.mm-world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+.mm-edges {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: visible;
+  pointer-events: none;
+}
+.mm-edges path {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1.5;
+}
+.mm-node {
+  position: absolute;
+  width: 220px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--mm-accent, var(--accent));
+  border-radius: var(--radius-panel);
+  padding: 8px 10px;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: box-shadow 120ms ease-out;
+}
+.mm-node.kind-root {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.mm-node.kind-root .md-view,
+.mm-node.kind-root .caption {
+  color: #fff;
+}
+.mm-node:hover {
+  border-color: var(--accent);
+}
+.mm-node.selected {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.mm-node.drop {
+  box-shadow: 0 0 0 2px var(--mark-homework);
+}
+.mm-node.dragging {
+  opacity: 0.6;
+}
+.mm-node.editing {
+  cursor: text;
+}
+.mm-excerpt {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  margin-bottom: 4px;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed var(--border);
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--text2);
+}
+.mm-page {
+  flex: 0 0 auto;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mm-accent, var(--accent)) 25%, transparent);
+  color: var(--text);
+  font-size: 11px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.mm-excerpt-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  user-select: text;
+}
+.mm-body {
+  font-size: 14px;
+  line-height: 20px;
+}
+.mm-body .md-view p {
+  margin: 0 0 0.3em;
+}
+.mm-body .md-view > :last-child {
+  margin-bottom: 0;
+}
+.mm-body .md-view ul,
+.mm-body .md-view ol {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.mm-body .md-editor {
+  min-height: 24px;
+}
+.mm-body .md-editor .cm-scroller {
+  padding: 0;
+}
+.mm-body .md-editor .cm-content {
+  padding: 0 !important;
+  min-height: 0;
+}
+.mm-body .md-editor,
+.mm-body .md-editor > *,
+.mm-body .md-editor .cm-editor {
+  height: auto;
+  flex: none;
+  min-height: 0;
+}
+.mm-toggle {
+  position: absolute;
+  right: -10px;
+  top: calc(50% - 9px);
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+.mm-toggle.collapsed {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.mm-drag-ghost {
+  position: absolute;
+  padding: 2px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  pointer-events: none;
+  z-index: 5;
+}

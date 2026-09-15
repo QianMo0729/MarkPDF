@@ -1,0 +1,19 @@
+{
+  "engine": "Mozilla Bergamot",
+  "version": "v0.6.0",
+  "license": "MPL-2.0",
+  "source": "https://github.com/mozilla/translations",
+  "glue": {
+    "source": "https://github.com/mozilla-firefox/firefox/blob/main/toolkit/components/translations/bergamot-translator/bergamot-translator.js",
+    "gitBlob": "4cc89e7b56dfa6d33e9b85deea3fdb9c8c11cffa",
+    "reportedVersion": "v0.6.0+eea6e5a8",
+    "sha256": "faff1ef6285b0d26f01787776fd49299dfb756ecb9688aa990c250e66797b47d"
+  },
+  "wasm": {
+    "registry": "https://firefox.settings.services.mozilla.com/v1/buckets/main/collections/translations-wasm/records",
+    "url": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/translations-wasm/05082c31-aee8-4249-9e01-c1865afd7520.wasm",
+    "size": 4960506,
+    "sha256": "a3a89d9ad0a4ed8f27bf3e403701b23f5709816f6376438503f2fa5b0182c2dc"
+  },
+  "integration": "worker.js is MarkPDF's local worker bridge. bergamot-translator.js is vendored without modifications. The model manifest is pinned separately in src/data/translation/models.json."
+}

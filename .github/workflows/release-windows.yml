@@ -1,0 +1,95 @@
+name: Windows installer release
+
+on:
+  push:
+    tags: ['v[0-9]*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-2022
+    timeout-minutes: 90
+    permissions:
+      contents: write
+    env:
+      RUSTUP_TOOLCHAIN: '1.98.1'
+      CARGO_BUILD_JOBS: '2'
+      CARGO_TARGET_DIR: ${{ github.workspace }}/app/src-tauri/target-release
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: app
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24.18.0'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.98.1 --profile minimal
+      - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            app/src-tauri/target-release
+          key: windows-asr-only-rust-1.98.1-${{ hashFiles('app/src-tauri/Cargo.lock', 'app/src-tauri/vendor/sherpa-onnx-sys/build.rs') }}
+      - name: Prepare portable native-library configuration
+        run: ./scripts/build-windows.ps1 -PrepareOnly
+      - name: Install locked frontend dependencies
+        run: npm.cmd ci
+      - name: Check tag, manifests and release notes
+        id: release_metadata
+        run: node scripts/check-release-version.mjs --tag "$env:GITHUB_REF_NAME" --github-output
+      - name: Verify pinned translation engine
+        run: node scripts/download-translation-assets.mjs
+      - name: Frontend tests and build
+        run: |
+          npm.cmd test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm.cmd run build
+      - name: Rust tests with locked dependencies
+        run: cargo test --locked --lib --manifest-path src-tauri/Cargo.toml
+      - name: Build NSIS installer and upload to a draft release
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: app
+          tagName: ${{ github.ref_name }}
+          releaseName: MarkPDF ${{ steps.release_metadata.outputs.version }}
+          releaseBody: ${{ steps.release_metadata.outputs.body }}
+          releaseDraft: true
+          prerelease: false
+          uploadUpdaterJson: false
+          uploadUpdaterSignatures: false
+          uploadPlainBinary: false
+          args: --ci --bundles nsis -- --locked
+      - name: Add checksum and publish the completed release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./scripts/verify-asr-link.ps1
+          ./scripts/write-checksums.ps1
+          $checksums = Join-Path $env:CARGO_TARGET_DIR 'release/bundle/nsis/SHA256SUMS.txt'
+          gh release upload "$env:GITHUB_REF_NAME" "$checksums" --repo "$env:GITHUB_REPOSITORY" --clobber
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          gh release edit "$env:GITHUB_REF_NAME" --repo "$env:GITHUB_REPOSITORY" --draft=false
+      - name: Retain installer and checksum as workflow artifacts
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: MarkPDF-${{ steps.release_metadata.outputs.version }}-windows-x64
+          path: |
+            app/src-tauri/target-release/release/bundle/nsis/MarkPDF_${{ steps.release_metadata.outputs.version }}_x64-setup.exe
+            app/src-tauri/target-release/release/bundle/nsis/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14

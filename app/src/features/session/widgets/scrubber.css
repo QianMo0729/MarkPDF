@@ -1,0 +1,23 @@
+.scrubber {
+  position: relative;
+  height: 28px;
+  flex: 0 0 28px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  user-select: none;
+}
+.scrubber.replay {
+  cursor: pointer;
+}
+.scrubber-tip {
+  position: absolute;
+  bottom: 100%;
+  transform: translate(-50%, -6px);
+  padding: 2px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  white-space: nowrap;
+  pointer-events: none;
+  color: var(--text);
+}

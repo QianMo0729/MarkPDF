@@ -1,0 +1,93 @@
+.panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.panel-head {
+  height: 40px;
+  flex: 0 0 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+}
+.panel-search {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 8px;
+}
+.panel-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+}
+.panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.panel-group-title {
+  padding: 8px 12px 4px;
+}
+.search-hit {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.search-hit:hover {
+  background: var(--surface2);
+}
+.search-hit-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.search-hit mark {
+  background: color-mix(in srgb, var(--highlight) 30%, transparent);
+  color: inherit;
+  border-radius: 2px;
+}
+
+/* annotations panel */
+.ann-item {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.ann-item:hover {
+  background: var(--surface2);
+}
+.ann-bar {
+  width: 4px;
+  flex: 0 0 4px;
+  border-radius: 2px;
+  align-self: stretch;
+}
+.ann-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-wrap;
+}

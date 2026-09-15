@@ -1,0 +1,123 @@
+.transcript-panel {
+  position: relative;
+}
+.transcript-panel .panel-head {
+  height: auto;
+  min-height: 40px;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+.transcript-panel .panel-search {
+  flex: 1 1 100px;
+  min-width: 80px;
+}
+.transcript-translation-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.transcript-toggle-state {
+  font-size: 11px;
+  opacity: 0.8;
+}
+.transcript-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 12px 8px;
+  overflow-wrap: anywhere;
+}
+.transcript-translation-error {
+  color: var(--record);
+}
+.transcript-list {
+  position: relative;
+  overflow-anchor: none;
+}
+.transcript-content {
+  min-width: 0;
+  padding-bottom: 8px;
+}
+.transcript-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.transcript-row:hover {
+  background: var(--surface2);
+}
+.transcript-row.current {
+  background: var(--accent-soft);
+}
+.transcript-time {
+  width: 44px;
+  flex: 0 0 44px;
+}
+.transcript-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+}
+.transcript-divider::before,
+.transcript-divider::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--border);
+}
+.transcript-partial {
+  padding: 8px 12px 8px 64px;
+  font-style: italic;
+}
+.transcript-back {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.transcript-list mark {
+  background: color-mix(in srgb, var(--highlight) 30%, transparent);
+  color: inherit;
+}
+.transcript-corrected {
+  color: var(--accent);
+}
+.transcript-original {
+  margin: 0 12px 8px 64px;
+}
+.transcript-original-toggle {
+  padding: 2px 0;
+  border: none;
+  background: transparent;
+  color: var(--text2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.transcript-original p {
+  margin: 6px 0 0;
+  padding-left: 8px;
+  border-left: 2px solid var(--border);
+  overflow-wrap: anywhere;
+}

@@ -1,0 +1,69 @@
+.shell {
+  height: 100%;
+  display: flex;
+}
+.shell-rail {
+  flex-direction: row;
+}
+.shell-bar {
+  flex-direction: column;
+}
+.shell-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.nav-rail {
+  width: 72px;
+  flex: 0 0 72px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 12px;
+  gap: 4px;
+}
+.nav-bar {
+  height: 56px;
+  flex: 0 0 56px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: stretch;
+}
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 64px;
+  height: 56px;
+  border-radius: var(--radius-panel);
+  color: var(--text2);
+  text-decoration: none;
+  transition: background var(--dur-hover) ease-out;
+}
+.nav-item .caption {
+  color: inherit;
+}
+.nav-item:hover {
+  background: var(--surface2);
+}
+.nav-item.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.nav-bar .nav-item {
+  border-radius: 0;
+  flex: 1 1 0;
+  width: auto;
+}
+.nav-bar .nav-item.active {
+  background: transparent;
+}

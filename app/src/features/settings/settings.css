@@ -1,0 +1,154 @@
+.settings {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+.settings.one-col {
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 16px;
+}
+.settings-nav {
+  width: 200px;
+  flex: 0 0 200px;
+  padding: 24px 12px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--surface);
+}
+.settings-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px;
+}
+.settings-nav-item:hover {
+  background: var(--surface2);
+}
+.settings-nav-item.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.settings-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 32px;
+  max-width: 760px;
+}
+.settings-group {
+  margin-bottom: 32px;
+}
+.settings-group h2 {
+  margin: 0 0 12px;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 48px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.settings-input {
+  width: 320px;
+  max-width: 50vw;
+}
+.settings-subtitle {
+  margin: 24px 0 8px;
+  font-size: 16px;
+}
+.settings-endpoint {
+  overflow-wrap: anywhere;
+}
+.settings-row > .col {
+  min-width: 0;
+}
+.settings-row > .row {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+@media (max-width: 600px) {
+  .settings-row {
+    flex-wrap: wrap;
+  }
+  .settings-input {
+    width: 100%;
+    max-width: 100%;
+  }
+  .settings-row > .row {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+.toggle {
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  border: none;
+  background: var(--text3);
+  position: relative;
+  cursor: pointer;
+  padding: 0;
+  transition: background var(--dur-hover) ease-out;
+}
+.toggle.on {
+  background: var(--accent);
+}
+.toggle-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #fff;
+  transition: left var(--dur-hover) ease-out;
+}
+.toggle.on .toggle-knob {
+  left: 21px;
+}
+.color-swatch.small {
+  width: 22px;
+  height: 22px;
+}
+.shortcut-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.shortcut-table td {
+  padding: 6px 8px 6px 0;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.shortcut-table td:first-child {
+  width: 260px;
+  white-space: nowrap;
+}
+/* "no colour" swatch */
+.color-swatch.none {
+  background: var(--surface);
+  position: relative;
+  overflow: hidden;
+}
+.color-swatch.none::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  bottom: -3px;
+  width: 1.5px;
+  background: var(--record);
+  transform: rotate(45deg);
+}

@@ -1,0 +1,259 @@
+/* On-page annotation layer (docs/SPEC.md 6.5.5). Lives inside pdf.js .page. */
+.mp-ann-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  overflow: visible;
+}
+.mp-ann-layer.tool-active {
+  pointer-events: auto;
+}
+.mp-ann-layer.tool-draw {
+  cursor: crosshair;
+  touch-action: none;
+}
+.mp-ann-layer.tool-text {
+  cursor: text;
+}
+.mp-ann-layer.tool-erase {
+  cursor: cell;
+  touch-action: none;
+}
+
+/* highlights: sit under everything, never intercept the text layer */
+.mp-hl {
+  position: absolute;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  opacity: 0.45;
+  border-radius: 2px;
+}
+.mp-hl.selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  opacity: 0.6;
+}
+.mp-hl.flash {
+  outline: 2px solid var(--accent);
+}
+.mp-hl-note {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  font-size: 14px;
+  line-height: 14px;
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 2;
+}
+
+/* ink */
+.mp-ink {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.mp-ink path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mp-ink.selectable path {
+  pointer-events: stroke;
+  cursor: pointer;
+}
+.mp-ink path.selected {
+  filter: drop-shadow(0 0 2px var(--accent));
+}
+
+/* text boxes: the border is the user's frame (colour inline), the fill is inline too; default is neither */
+.mp-tb {
+  position: absolute;
+  pointer-events: auto;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  box-sizing: border-box;
+  overflow: visible;
+  min-width: 40px;
+  min-height: 20px;
+  z-index: 3;
+}
+/* UI states use the outline so they never touch the user's border */
+.mp-tb:hover {
+  outline: 1px dashed color-mix(in srgb, var(--accent) 60%, transparent);
+  outline-offset: 0;
+}
+.mp-tb.selected,
+.mp-tb.editing {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+.mp-tb.flash {
+  outline: 2px solid var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+/* invisible grips along the frame: drag to move while the editor owns the body */
+.mp-tb-edge {
+  position: absolute;
+  z-index: 3;
+  cursor: move;
+}
+.mp-tb-edge.n { left: 0; right: 0; top: -5px; height: 8px; }
+.mp-tb-edge.s { left: 0; right: 0; bottom: -5px; height: 8px; }
+.mp-tb-edge.w { top: 0; bottom: 0; left: -5px; width: 8px; }
+.mp-tb-edge.e { top: 0; bottom: 0; right: -5px; width: 8px; }
+.mp-tb-body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  cursor: move;
+}
+.mp-tb.editing .mp-tb-body {
+  cursor: text;
+  overflow: hidden;
+}
+.mp-tb .md-editor .cm-scroller {
+  overflow: hidden;
+}
+/* inside a text box the editor takes its natural height instead of filling the box */
+.mp-tb .md-editor,
+.mp-tb .md-editor > *,
+.mp-tb .md-editor .cm-editor {
+  height: auto;
+  flex: none;
+  min-height: 0;
+}
+.mp-tb .md-editor .cm-content {
+  min-height: 0;
+  padding-bottom: 0 !important; /* atomic-editor adds a 40vh scroll-past-end pad */
+  padding-top: 0 !important;
+}
+.mp-tb .md-view {
+  padding: 2px 4px;
+  line-height: 1.35;
+  user-select: none;
+  word-break: break-word;
+}
+.mp-tb .md-view > :first-child {
+  margin-top: 0;
+}
+.mp-tb .md-view > :last-child {
+  margin-bottom: 0;
+}
+.mp-tb .md-view p {
+  margin: 0 0 0.4em;
+}
+.mp-tb .md-view h1,
+.mp-tb .md-view h2,
+.mp-tb .md-view h3 {
+  margin: 0 0 0.3em;
+  font-size: 1.25em;
+}
+.mp-tb .md-view ul,
+.mp-tb .md-view ol {
+  margin: 0 0 0.4em;
+  padding-left: 1.4em;
+}
+.mp-tb .md-view pre {
+  margin: 0 0 0.4em;
+  padding: 4px 6px;
+  background: var(--surface2);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  overflow-x: auto;
+}
+.mp-tb .md-view code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+.mp-tb-empty {
+  color: var(--text3);
+  padding: 2px 4px;
+  opacity: 0.8;
+}
+.mp-handle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  z-index: 4;
+}
+.mp-handle.nw { left: -5px; top: -5px; cursor: nwse-resize; }
+.mp-handle.n { left: calc(50% - 4px); top: -5px; cursor: ns-resize; }
+.mp-handle.ne { right: -5px; top: -5px; cursor: nesw-resize; }
+.mp-handle.e { right: -5px; top: calc(50% - 4px); cursor: ew-resize; }
+.mp-handle.se { right: -5px; bottom: -5px; cursor: nwse-resize; }
+.mp-handle.s { left: calc(50% - 4px); bottom: -5px; cursor: ns-resize; }
+.mp-handle.sw { left: -5px; bottom: -5px; cursor: nesw-resize; }
+.mp-handle.w { left: -5px; top: calc(50% - 4px); cursor: ew-resize; }
+
+/* mini bar above a selected annotation */
+.mp-minibar {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  pointer-events: auto;
+  z-index: 6;
+  white-space: nowrap;
+}
+.mp-minibar .icon-btn {
+  width: 24px;
+  height: 24px;
+}
+.mp-minibar .tool-swatch {
+  width: 14px;
+  height: 14px;
+}
+
+/* highlight popover */
+.mp-popover {
+  position: absolute;
+  width: 280px;
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  pointer-events: auto;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mp-popover .md-editor {
+  min-height: 56px;
+  max-height: 160px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.mp-popover .md-editor .cm-scroller {
+  padding: 4px 8px;
+}
+
+/* live ink preview while drawing */
+.mp-ink-live path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* our own host inside pdf.js .page; survives pdf.js resets by being re-appended */
+.mp-ann-host {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}

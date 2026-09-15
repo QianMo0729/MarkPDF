@@ -1,0 +1,67 @@
+{
+  "description": "Shared timeline test cases (docs/SPEC.md 5.2 / 13). Both app/src/domain/timeline.ts and server/app/services/timeline.py must pass.",
+  "cases": [
+    {
+      "name": "no events: one interval covering the whole session",
+      "initial_page_index": 3,
+      "duration_ms": 60000,
+      "events": [],
+      "expect_intervals": [{ "page_index": 3, "t0_ms": 0, "t1_ms": 60000 }],
+      "page_at": [[0, 3], [59999, 3], [60000, 3]]
+    },
+    {
+      "name": "page changes cut the timeline; same first and last page",
+      "initial_page_index": 0,
+      "duration_ms": 100000,
+      "events": [
+        { "id": "a", "type": "page_change", "t_ms": 10000, "payload": { "page_index": 1 } },
+        { "id": "b", "type": "page_change", "t_ms": 40000, "payload": { "page_index": 2 } },
+        { "id": "c", "type": "page_change", "t_ms": 70000, "payload": { "page_index": 0 } }
+      ],
+      "expect_intervals": [
+        { "page_index": 0, "t0_ms": 0, "t1_ms": 10000 },
+        { "page_index": 1, "t0_ms": 10000, "t1_ms": 40000 },
+        { "page_index": 2, "t0_ms": 40000, "t1_ms": 70000 },
+        { "page_index": 0, "t0_ms": 70000, "t1_ms": 100000 }
+      ],
+      "page_at": [[9999, 0], [10000, 1], [39999, 1], [40000, 2], [70000, 0], [99999, 0]]
+    },
+    {
+      "name": "consecutive same-page changes merge",
+      "initial_page_index": 5,
+      "duration_ms": 30000,
+      "events": [
+        { "id": "a", "type": "page_change", "t_ms": 5000, "payload": { "page_index": 5 } },
+        { "id": "b", "type": "page_change", "t_ms": 12000, "payload": { "page_index": 6 } },
+        { "id": "c", "type": "page_change", "t_ms": 15000, "payload": { "page_index": 6 } }
+      ],
+      "expect_intervals": [
+        { "page_index": 5, "t0_ms": 0, "t1_ms": 12000 },
+        { "page_index": 6, "t0_ms": 12000, "t1_ms": 30000 }
+      ],
+      "page_at": [[11999, 5], [12000, 6], [29999, 6]]
+    },
+    {
+      "name": "live: duration grows and the last interval extends",
+      "initial_page_index": 0,
+      "duration_ms": 45000,
+      "events": [{ "id": "a", "type": "page_change", "t_ms": 20000, "payload": { "page_index": 1 } }],
+      "expect_intervals": [
+        { "page_index": 0, "t0_ms": 0, "t1_ms": 20000 },
+        { "page_index": 1, "t0_ms": 20000, "t1_ms": 45000 }
+      ],
+      "page_at": [[44999, 1]]
+    },
+    {
+      "name": "segments are assigned by midpoint",
+      "initial_page_index": 0,
+      "duration_ms": 100000,
+      "events": [{ "id": "a", "type": "page_change", "t_ms": 50000, "payload": { "page_index": 1 } }],
+      "expect_intervals": [
+        { "page_index": 0, "t0_ms": 0, "t1_ms": 50000 },
+        { "page_index": 1, "t0_ms": 50000, "t1_ms": 100000 }
+      ],
+      "segment_pages": [[40000, 58000, 0], [45000, 60000, 1], [49000, 51000, 1]]
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+.notes-head {
+  justify-content: space-between;
+  gap: 8px;
+}
+.notes-head .segmented > button {
+  height: 26px;
+  padding: 0 8px;
+}
+.notes-mode-label {
+  font-size: 12px;
+}
+@container (max-width: 360px) {
+  .notes-mode-label {
+    display: none;
+  }
+}
+.notes-panel {
+  container-type: inline-size;
+}
+.notes-status {
+  min-width: 44px;
+  text-align: right;
+  color: var(--text3);
+}
+.notes-status.unsaved {
+  color: var(--highlight);
+}
+.notes-status.saving {
+  color: var(--text2);
+}
+.notes-toolbar {
+  height: 36px;
+  flex: 0 0 36px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.notes-tool {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+}
+.notes-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.notes-body > .md-editor {
+  flex: 1 1 auto;
+}

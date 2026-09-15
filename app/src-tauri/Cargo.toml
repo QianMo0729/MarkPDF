@@ -1,0 +1,46 @@
+[package]
+name = "markpdf"
+version = "0.1.1"
+description = "MarkPDF: PDF reader, Markdown notes and lecture recording"
+authors = ["MarkPDF"]
+edition = "2021"
+
+[lib]
+name = "markpdf_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[patch.crates-io]
+# Windows release builds use upstream's ASR-only native archive. See vendor note.
+sherpa-onnx-sys = { path = "vendor/sherpa-onnx-sys" }
+
+[dependencies]
+tauri = { version = "2", features = ["protocol-asset"] }
+tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-http = "2"
+tauri-plugin-sql = { version = "2", features = ["sqlite"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+base64 = "0.22"
+cpal = "0.15"
+rubato = "0.16"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream"] }
+futures-util = "0.3"
+sherpa-onnx = "1.13"
+tauri-plugin-single-instance = "2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_System_Power", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }
+
+[profile.release]
+# thin LTO + a few codegen units keep peak memory well under the machine's ~3 GB free
+codegen-units = 4
+lto = "thin"
+opt-level = 3
+panic = "abort"
+strip = true

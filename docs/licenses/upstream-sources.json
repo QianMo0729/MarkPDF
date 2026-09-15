@@ -1,0 +1,206 @@
+[
+  {
+    "file": "source-sans-OFL.txt",
+    "source": "https://api.github.com/repos/adobe-fonts/source-sans/contents/LICENSE.md?ref=release",
+    "gitBlob": "22c601b82f29fc6bb801445098c9f23ffdca4f94",
+    "sha256": "56af9b9c6715597e458284a474dc118a50a4150e9d547c70f7b4a33c3e6a9328"
+  },
+  {
+    "file": "source-code-pro-OFL.txt",
+    "source": "https://api.github.com/repos/adobe-fonts/source-code-pro/contents/LICENSE.md?ref=release",
+    "gitBlob": "70288a864f8dfd1314aa0315748eece0cf80fdda",
+    "sha256": "7c940e28a5388e9bba866cf0e408edda45fe0899ba98665b8f6ab31dc5e4b8ff"
+  },
+  {
+    "file": "sherpa-onnx-LICENSE.txt",
+    "source": "https://api.github.com/repos/k2-fsa/sherpa-onnx/contents/LICENSE?ref=v1.13.8",
+    "gitBlob": "d645695673349e3947e8e5ae42332d0ac3164cd7",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  {
+    "file": "bergamot-LICENSE",
+    "source": "https://api.github.com/repos/mozilla/translations/git/blobs/a612ad9813b006ce81d1ee438dd784da99a54007",
+    "gitBlob": "a612ad9813b006ce81d1ee438dd784da99a54007",
+    "sha256": "1f256ecad192880510e84ad60474eab7589218784b9a50bc7ceee34c2b91f1d5"
+  },
+  {
+    "file": "bergamot-inference_marian-fork_LICENSE.md",
+    "source": "https://api.github.com/repos/mozilla/translations/git/blobs/878908214b517318c946a7d97b2239397c739181",
+    "gitBlob": "878908214b517318c946a7d97b2239397c739181",
+    "sha256": "fb3e48be2f3c9c85f3acf32d4ff115a803208e51ecab694000415c8bf1dd712b"
+  },
+  {
+    "file": "bergamot-inference_marian-fork_src_3rd_party_CLI_LICENSE",
+    "source": "https://api.github.com/repos/mozilla/translations/git/blobs/6b00778361fa1a72bf82271e2a56ba166204b540",
+    "gitBlob": "6b00778361fa1a72bf82271e2a56ba166204b540",
+    "sha256": "82b1de8bd2cbd894dc9ef05854e9d8c010d0ae9f6f2dc41370bac498f9bebc7d"
+  },
+  {
+    "file": "bergamot-inference_marian-fork_src_3rd_party_cnpy_LICENSE",
+    "source": "https://api.github.com/repos/mozilla/translations/git/blobs/e60eadbccb3f9e19bc6cebaa4505da27dfed2ff1",
+    "gitBlob": "e60eadbccb3f9e19bc6cebaa4505da27dfed2ff1",
+    "sha256": "1ff6fa94ad29d941ceb3bdd5ebfb260ddba4c3e962c50fb7a66c899e769de1ff"
+  },
+  {
+    "file": "bergamot-inference_marian-fork_src_3rd_party_faiss_LICENSE",
+    "source": "https://api.github.com/repos/mozilla/translations/git/blobs/b96dcb0480a0b0be0727976e5202a1e7b23edc3f",
+    "gitBlob": "b96dcb0480a0b0be0727976e5202a1e7b23edc3f",
+    "sha256": "52412d7bc7ce4157ea628bbaacb8829e0a9cb3c58f57f99176126bc8cf2bfc85"
+  },
+  {
+    "file": "bergamot-inference_marian-fork_src_3rd_party_mio_LICENSE",
+    "source": "https://api.github.com/repos/mozilla/translations/git/blobs/361770744b6314227b1d9f5f007d802fd35bc9b0",
+    "gitBlob": "361770744b6314227b1d9f5f007d802fd35bc9b0",
+    "sha256": "1a0fe0714e5fc17741dd880bddf445c4b3c579868df1f198f652129a9fa7c3cc"
+  },
+  {
+    "file": "bergamot-inference_marian-fork_src_3rd_party_pathie-cpp_LICENSE",
+    "source": "https://api.github.com/repos/mozilla/translations/git/blobs/f74dec43e8a9996c58d490a143d89b809d9eb0b6",
+    "gitBlob": "f74dec43e8a9996c58d490a143d89b809d9eb0b6",
+    "sha256": "8515fc938185ff3edb2c38b60b3a2f4a92b93644502de2b73fc32d54077e2a61"
+  },
+  {
+    "file": "bergamot-inference_marian-fork_src_3rd_party_phf_LICENSE",
+    "source": "https://api.github.com/repos/mozilla/translations/git/blobs/039208c408d2c75506b75a7b30f5d007e9ddfb95",
+    "gitBlob": "039208c408d2c75506b75a7b30f5d007e9ddfb95",
+    "sha256": "3f9e948dcc51aab1299dc37a53f9218bf0414c7ea24ee38e310269f74e2eef72"
+  },
+  {
+    "file": "bergamot-inference_marian-fork_src_3rd_party_yaml-cpp_LICENSE",
+    "source": "https://api.github.com/repos/mozilla/translations/git/blobs/991fdbbe7d3d039b1156828ff923a8fb5079cedd",
+    "gitBlob": "991fdbbe7d3d039b1156828ff923a8fb5079cedd",
+    "sha256": "aa6fcc27be034e41e21dd832f9175bfe694a48491d9e14ff0fa278e19ad14f1b"
+  },
+  {
+    "file": "bergamot-inference_marian-fork_src_3rd_party_spdlog_LICENSE",
+    "source": "https://api.github.com/repos/mozilla/translations/git/blobs/806124de2f6fdf25409773f822225891957702b4",
+    "gitBlob": "806124de2f6fdf25409773f822225891957702b4",
+    "sha256": "9eb46fbd9cbdb0793e496ab744aa2e290b4e39825a2da5cba3ba6fa36bb25683"
+  },
+  {
+    "file": "bergamot-inference_marian-fork_src_3rd_party_zstr_LICENSE",
+    "source": "https://api.github.com/repos/mozilla/translations/git/blobs/841c7214532b016f5fe40fb67fc1355271537723",
+    "gitBlob": "841c7214532b016f5fe40fb67fc1355271537723",
+    "sha256": "f2b4ae40b0311262960b46f697497994fe35706110ac04f04b3768d9ea7df460"
+  },
+  {
+    "file": "native-onnxruntime-LICENSE.txt",
+    "source": "https://api.github.com/repos/microsoft/onnxruntime/contents/LICENSE?ref=v1.28.2",
+    "gitBlob": "48bc6bb4996ac924359e8e28b9ae88970e5ed3fc",
+    "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c"
+  },
+  {
+    "file": "native-kaldi-decoder-LICENSE.txt",
+    "source": "https://api.github.com/repos/k2-fsa/kaldi-decoder/contents/LICENSE?ref=v0.3.0",
+    "gitBlob": "d645695673349e3947e8e5ae42332d0ac3164cd7",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  {
+    "file": "native-kaldi-native-fbank-LICENSE.txt",
+    "source": "https://api.github.com/repos/csukuangfj/kaldi-native-fbank/contents/LICENSE?ref=v1.22.3",
+    "gitBlob": "d645695673349e3947e8e5ae42332d0ac3164cd7",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  {
+    "file": "bergamot-intgemm-LICENSE.txt",
+    "source": "https://api.github.com/repos/kpu/intgemm/contents/LICENSE?ref=f7401513da71758dacce52fed1c7855549abee59",
+    "gitBlob": "0d57f7b94017084fa8e42e6d65649fa6dea51155",
+    "sha256": "887bd367b44f548d743864cb4322d0895a36b1794c6ad5b5e3a0fac53ccd117b"
+  },
+  {
+    "file": "native-onnxruntime-ThirdPartyNotices.txt",
+    "source": "https://api.github.com/repos/microsoft/onnxruntime/contents/ThirdPartyNotices.txt?ref=v1.28.2",
+    "gitBlob": "fbd9f9a95f6013d8ecaef81e02b0033e5882a675",
+    "sha256": "0e07b95f3a8d6230037707c5c4a2b554d12c4cb67369669ac255635528ffcee2"
+  },
+  {
+    "file": "bergamot-sentencepiece-LICENSE.txt",
+    "source": "https://api.github.com/repos/browsermt/sentencepiece/contents/LICENSE?ref=ae41b7740d7006596bb9257e83340b2620db9d00",
+    "gitBlob": "d645695673349e3947e8e5ae42332d0ac3164cd7",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  {
+    "file": "native-kissfft-LICENSE.txt",
+    "source": "https://api.github.com/repos/mborgerding/kissfft/license?ref=febd4caeed32e33ad8b2e0bb5ea77542c40f18ec",
+    "gitBlob": "6b4b622e7bd7053be8531deaf4242603bca4c85b",
+    "sha256": "a2840585f8411be8e6826a31ef15ae65c950bd74a2437a73b013398a934ad0c6"
+  },
+  {
+    "file": "native-kaldifst-LICENSE.txt",
+    "source": "https://api.github.com/repos/k2-fsa/kaldifst/license?ref=v1.8.0",
+    "gitBlob": "ee06cfc772ef1c8ed22f28527fe4cee5aa06b246",
+    "sha256": "a682d6efd1ee5dee08a8e405c233c2c198ea70ae0718129daa83ab58cfe31c5d"
+  },
+  {
+    "file": "native-simple-sentencepiece-LICENSE.txt",
+    "source": "https://api.github.com/repos/pkufool/simple-sentencepiece/license?ref=v0.7",
+    "gitBlob": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+    "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+  },
+  {
+    "file": "native-kissfft-BSD-3-Clause.txt",
+    "source": "https://api.github.com/repos/mborgerding/kissfft/contents/LICENSES/BSD-3-Clause?ref=febd4caeed32e33ad8b2e0bb5ea77542c40f18ec",
+    "gitBlob": "b8d56812171eb511e50d06698700f8e8b5fb6c41",
+    "sha256": "4d6bcab46f27d6d0c878e8305d4bdcfe040d52bf6656b9771f04c9fb9902c0ed"
+  },
+  {
+    "file": "native-openfst-LICENSE.txt",
+    "source": "https://api.github.com/repos/csukuangfj/openfst/license?ref=v1.8.5-2026-04-10",
+    "gitBlob": "d0d7ee0b8011b1a38155219ba1497e03238c5faa",
+    "sha256": "4300529197035fd3452350718a0b8cee984e9412c9932d7f35fcde849fc97a4b"
+  },
+  {
+    "file": "crate-alloc-stdlib-LICENSE.txt",
+    "source": "https://api.github.com/repos/dropbox/rust-alloc-no-stdlib/license?ref=ae42d22078b98549e987d2f03d12df7b984fde47",
+    "gitBlob": "cd496ba72eb37e83a44958358d1f89a8a28cbc15",
+    "sha256": "c0c56f26d9c051cac4d200c34c84e7ae9aaa853e01a982a1df08b09931e518ae"
+  },
+  {
+    "file": "crate-defmt-parser-LICENSE.txt",
+    "source": "https://api.github.com/repos/knurling-rs/defmt/license?ref=4a8cdb44891ed57b8ff5a023b6bec7137c48708f",
+    "gitBlob": "11069edd79019f7dafbe3138841cf289209270dd",
+    "sha256": "8173d5c29b4f956d532781d2b86e4e30f83e6b7878dce18c919451d6ba707c90"
+  },
+  {
+    "file": "crate-dasp_sample-LICENSE.txt",
+    "source": "https://api.github.com/repos/rustaudio/sample/license?ref=97c3bb9b2363c0b46ac1633858bf1054fd02a980",
+    "gitBlob": "74c4f492b303bec6da5ec6af182865f664a4c4c0",
+    "sha256": "756c8d2ab2dc24f256e1455b5f03937f4933d83d7bc9f2d55009fc962377d512"
+  },
+  {
+    "file": "crate-tauri-plugin-LICENSE.txt",
+    "source": "https://api.github.com/repos/tauri-apps/tauri/license?ref=6f6ab1207bb3923c2721fbc67d2fdb1c8deb0c7a",
+    "gitBlob": "f433b1a53f5b830a205fd2df78e2b34974656c7b",
+    "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+  },
+  {
+    "file": "crate-unic-ucd-version-LICENSE.txt",
+    "source": "https://api.github.com/repos/open-i18n/rust-unic/license?ref=5878605364af97a3358368a6eaef02104af2e016",
+    "gitBlob": "16fe87b06e802f094b3fbb0894b137bca2b16ef1",
+    "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+  },
+  {
+    "file": "crate-unic-ucd-ident-LICENSE.txt",
+    "source": "https://api.github.com/repos/open-i18n/rust-unic/license?ref=8a6ce83063d90b91ae2ce59eddb803edd393fca9",
+    "gitBlob": "16fe87b06e802f094b3fbb0894b137bca2b16ef1",
+    "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+  },
+  {
+    "file": "crate-webview2-com-sys-LICENSE.txt",
+    "source": "https://api.github.com/repos/wravery/webview2-rs/license?ref=b74dc5e2b394044bea5191052868ce7a106c202c",
+    "gitBlob": "de9a7e660e173136b351982a34f715af424ff812",
+    "sha256": "0dcf41516e608bbcb6cdc5229feb7b86fe4a643b85e7df251133c93408fdac73"
+  },
+  {
+    "file": "crate-webview2-com-macros-LICENSE.txt",
+    "source": "https://api.github.com/repos/wravery/webview2-rs/license?ref=dffa41a8a46d3f5565eefbff2de57d38d399f158",
+    "gitBlob": "de9a7e660e173136b351982a34f715af424ff812",
+    "sha256": "0dcf41516e608bbcb6cdc5229feb7b86fe4a643b85e7df251133c93408fdac73"
+  },
+  {
+    "file": "bergamot-ssplit-LICENSE.txt",
+    "source": "https://api.github.com/repos/browsermt/ssplit-cpp/license?ref=a311f9865ade34db1e8e080e6cc146f55dafb067",
+    "gitBlob": "a2dfa77b7b56a014c36a223c632589d477dccd3a",
+    "sha256": "4ced746a9cab1b6b6762bd6c1999c6d65e2d45de0bab19a3902514147bbff16a"
+  }
+]

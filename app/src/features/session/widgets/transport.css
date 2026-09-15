@@ -1,0 +1,209 @@
+.transport {
+  height: 72px;
+  flex: 0 0 72px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.transport > :not(.grow) { flex-shrink: 0; }
+.record-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background: var(--surface2);
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+}
+.record-btn.recording {
+  background: var(--record);
+  color: #fff;
+}
+.record-btn.recording::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 999px;
+  border: 2px solid var(--record);
+  animation: rec-pulse 1.2s ease-in-out infinite;
+}
+.record-btn.paused {
+  border-color: var(--record);
+  color: var(--record);
+  background: transparent;
+}
+.record-btn.compact {
+  width: 32px;
+  height: 32px;
+}
+.record-btn.compact.recording::after {
+  inset: -3px;
+}
+@keyframes rec-pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+.play-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.level-meter {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 20px;
+}
+.level-bar {
+  width: 3px;
+  height: 100%;
+  background: var(--border);
+  border-radius: 1px;
+}
+.level-bar.on {
+  background: var(--text2);
+}
+.level-bar.peak {
+  background: var(--accent);
+}
+
+.asr-chip.asr-on {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent);
+}
+.asr-chip.asr-model {
+  background: var(--highlight-soft);
+  border-color: transparent;
+  color: var(--text);
+}
+.asr-chip.asr-off {
+  background: var(--surface2);
+  border-color: transparent;
+}
+.asr-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  animation: rec-pulse 1.2s ease-in-out infinite;
+}
+
+.marker-bar {
+  display: flex;
+  gap: 8px;
+}
+.marker-btn {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--marker, var(--text2));
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  cursor: pointer;
+  transition: background 120ms ease-out;
+}
+.marker-btn .caption {
+  color: inherit;
+  font-size: 10px;
+  line-height: 12px;
+}
+.marker-btn:hover:not(:disabled) {
+  background: var(--surface2);
+}
+.marker-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.marker-btn.flash {
+  background: var(--marker);
+  color: #fff;
+}
+
+.transport-time {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.marker-nav {
+  display: flex;
+  gap: 4px;
+}
+.marker-nav .chip {
+  cursor: pointer;
+  height: 28px;
+}
+.marker-nav .chip:hover {
+  background: var(--surface2);
+}
+
+.prep-banner {
+  height: 40px;
+  flex: 0 0 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.interrupt-banner {
+  height: 40px;
+  flex: 0 0 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  background: color-mix(in srgb, var(--record) 12%, var(--surface));
+  border-bottom: 1px solid var(--border);
+}
+/* recording banner outside the session screen (audit PM-01) */
+.recording-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 40px;
+  padding: 0 16px;
+  background: color-mix(in srgb, var(--record) 12%, var(--surface));
+  border-bottom: 1px solid var(--border);
+}
+.recording-banner .live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--record);
+  animation: rec-pulse 1.2s ease-in-out infinite;
+}
+.recording-banner .live-dot.paused {
+  animation: none;
+  opacity: 0.5;
+}

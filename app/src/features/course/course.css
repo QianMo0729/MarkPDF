@@ -1,0 +1,86 @@
+.course {
+  padding: 24px 32px;
+  max-width: 1400px;
+}
+.course-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.course-section-title {
+  margin: 24px 0 12px;
+}
+.course-section-empty {
+  padding: 8px 0 16px;
+}
+.deck-row {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+.deck-card {
+  width: 200px;
+  flex: 0 0 200px;
+  height: 176px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  overflow: hidden;
+  text-align: left;
+}
+.deck-card:hover {
+  background: var(--surface2);
+}
+.deck-card-thumb {
+  width: 200px;
+  height: 112px;
+  background: var(--slide-bg);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.deck-card-thumb img,
+.deck-card-thumb canvas {
+  max-width: 100%;
+  max-height: 100%;
+}
+.deck-card-title {
+  padding: 0 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.deck-card .caption {
+  padding: 0 12px 8px;
+}
+.deck-card-status {
+  margin: 0 12px;
+}
+
+.deck-choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px;
+  border: none;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+.deck-choice:hover {
+  background: var(--surface2);
+}
