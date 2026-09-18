@@ -23,6 +23,7 @@
 - 「设置 → 翻译与 AI」新增「接入方式」：自定义 API（原有）或 ChatGPT 账号（Codex）。
 - 选择 Codex 后，MarkPDF 通过本机 Codex CLI 登录并使用你的 ChatGPT 订阅额度，翻译、解释和上下文纠错都不需要 API Key。登录与令牌由 Codex 自己保存，MarkPDF 不保存凭据。
 - 可从账号可用的模型列表中选择模型和推理强度，查看本周额度并测试连接。需要先安装 Codex CLI（`npm install -g @openai/codex`），或在设置里填写 codex.exe 路径。
+- 自动检测兼容 npm 将平台二进制装在 Codex 包内部的布局，修复已安装 CLI 却提示“没有找到”的问题；启动或版本检测失败会显示具体错误。
 
 ### 编辑与界面修正
 

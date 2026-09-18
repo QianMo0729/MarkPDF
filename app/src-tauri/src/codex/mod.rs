@@ -95,11 +95,22 @@ fn npm_vendor_candidates(node_modules: &Path) -> Vec<PathBuf> {
         "aarch64" => "arm64",
         other => other,
     };
-    vec![
-        node_modules.join("@openai").join(format!("{platform_pkg}-{arch}")).join("vendor").join(TRIPLE).join("bin").join(EXE),
-        node_modules.join("@openai").join("codex").join("vendor").join(TRIPLE).join("bin").join(EXE),
-        node_modules.join("@openai").join("codex").join("vendor").join(TRIPLE).join("codex").join(EXE),
+    let codex_package = node_modules.join("@openai").join("codex");
+    let platform_package = PathBuf::from("@openai").join(format!("{platform_pkg}-{arch}"));
+    // npm may nest the optional platform package inside @openai/codex instead
+    // of hoisting it next to that package. Match the CLI launcher's Node module
+    // resolution order, then fall back to older releases with bundled vendors.
+    [
+        codex_package.join("node_modules").join(&platform_package),
+        node_modules.join(&platform_package),
+        codex_package,
     ]
+    .into_iter()
+    .flat_map(|package| {
+        let vendor = package.join("vendor").join(TRIPLE);
+        [vendor.join("bin").join(EXE), vendor.join("codex").join(EXE)]
+    })
+    .collect()
 }
 
 /// Everywhere a Codex binary is usually found, most specific first.
@@ -752,5 +763,55 @@ mod tests {
         assert_eq!(list[0], PathBuf::from("C:/tools/codex.exe"));
         let dir = candidate_paths(Some("C:/tools"));
         assert!(dir[0].ends_with(EXE) || dir[0] == PathBuf::from("C:/tools"));
+    }
+
+    #[test]
+    fn npm_discovery_finds_nested_hoisted_and_legacy_binaries() {
+        let root = std::env::temp_dir().join(format!(
+            "markpdf-codex-discovery-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos(),
+        ));
+        struct Fixture(PathBuf);
+        impl Drop for Fixture {
+            fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.0); }
+        }
+        let _fixture = Fixture(root.clone());
+        let platform = match std::env::consts::OS {
+            "windows" => "win32",
+            "macos" => "darwin",
+            other => other,
+        };
+        let arch = match std::env::consts::ARCH {
+            "x86_64" => "x64",
+            "aarch64" => "arm64",
+            other => other,
+        };
+        let package = format!("codex-{platform}-{arch}");
+        // These are on-disk npm layouts, independent of the candidate builder.
+        let layouts = [
+            format!("@openai/codex/node_modules/@openai/{package}"),
+            format!("@openai/{package}"),
+            "@openai/codex".to_string(),
+        ];
+        for (index, layout) in layouts.iter().enumerate() {
+            for bin_dir in ["bin", "codex"] {
+                let node_modules = root.join(format!("{index}-{bin_dir}")).join("node_modules");
+                let binary = node_modules.join(layout).join("vendor").join(TRIPLE).join(bin_dir).join(EXE);
+                std::fs::create_dir_all(binary.parent().unwrap()).unwrap();
+                std::fs::write(&binary, []).unwrap();
+                let found = npm_vendor_candidates(&node_modules).into_iter().find(|p| p.is_file());
+                assert_eq!(found.as_ref(), Some(&binary), "missed npm layout {layout}/{bin_dir}");
+            }
+        }
+        let node_modules = root.join("precedence").join("node_modules");
+        let binaries: Vec<_> = layouts.iter().map(|layout| {
+            let binary = node_modules.join(layout).join("vendor").join(TRIPLE).join("bin").join(EXE);
+            std::fs::create_dir_all(binary.parent().unwrap()).unwrap();
+            std::fs::write(&binary, []).unwrap();
+            binary
+        }).collect();
+        let found = npm_vendor_candidates(&node_modules).into_iter().find(|p| p.is_file());
+        assert_eq!(found.as_ref(), Some(&binaries[0]), "the CLI resolves its own nested dependency first");
     }
 }

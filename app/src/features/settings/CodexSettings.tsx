@@ -63,7 +63,7 @@ export function CodexSettings() {
     } catch (e) {
       if (!mounted.current) return;
       const message = String(e instanceof Error ? e.message : e);
-      setProbe(/codex_not_found|cannot run|did not report/i.test(message) ? { state: "missing", message } : { state: "error", message });
+      setProbe(/^codex_not_found(?:\s|:|$)/i.test(message) ? { state: "missing", message } : { state: "error", message });
     }
   }, []);
 
