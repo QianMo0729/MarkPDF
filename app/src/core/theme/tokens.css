@@ -309,6 +309,7 @@ a {
   align-items: center;
   gap: 4px;
   font-size: 13px;
+  white-space: nowrap;
 }
 .segmented > button + button {
   border-left: 1px solid var(--border);

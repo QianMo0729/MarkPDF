@@ -2,7 +2,7 @@
 
 ## 直接安装
 
-普通用户从 [GitHub Releases](https://github.com/QianMo0729/MarkPDF/releases/latest) 下载 `MarkPDF_0.1.1_x64-setup.exe`，双击按提示安装即可。无需安装 Node.js、Rust 或 Visual Studio。系统缺少 WebView2 时，安装器会下载其运行时。
+普通用户从 [GitHub Releases](https://github.com/QianMo0729/MarkPDF/releases/latest) 下载 `MarkPDF_0.1.2_x64-setup.exe`，双击按提示安装即可。无需安装 Node.js、Rust 或 Visual Studio。系统缺少 WebView2 时，安装器会下载其运行时。
 
 下面的步骤供自行修改源码或构建安装包的开发者使用。
 
@@ -31,7 +31,7 @@ powershell -ExecutionPolicy Bypass -File .\app\scripts\build-windows.ps1
 
 ```text
 app/src-tauri/target-release/release/bundle/nsis/
-  MarkPDF_0.1.1_x64-setup.exe
+  MarkPDF_0.1.2_x64-setup.exe
   SHA256SUMS.txt
 ```
 
@@ -59,13 +59,13 @@ $env:SHERPA_ONNX_ARCHIVE_DIR = 'D:\build-cache\sherpa'
 - `Windows checks`：分支 push 和 PR 执行 npm 锁定安装、版本 / 引擎校验、前端测试 / 构建及 Rust 测试。使用只读仓库权限。
 - `Windows installer release`：推送 `v<版本>` 标签后执行同样检查，生成 NSIS 安装器；通过原生导出检查（禁止残留 eSpeak / Piper）并上传安装器及 SHA-256 后发布 GitHub Release。普通用户下载 Release 中的 `.exe` 即可安装。
 
-发布前需要同步 `app/package.json`、`app/package-lock.json`、`app/src-tauri/tauri.conf.json`、`app/src-tauri/Cargo.toml`、`app/src-tauri/Cargo.lock` 的应用版本，并准备 `docs/RELEASE_NOTES_<版本>.md`。工作流检查标签与这些文件一致，再使用该 Markdown 作为 Release 说明。当前版本保持 0.1.1。
+发布前需要同步 `app/package.json`、`app/package-lock.json`、`app/src-tauri/tauri.conf.json`、`app/src-tauri/Cargo.toml`、`app/src-tauri/Cargo.lock` 的应用版本，并准备 `docs/RELEASE_NOTES_<版本>.md`。工作流检查标签与这些文件一致，再使用该 Markdown 作为 Release 说明。当前版本保持 0.1.2。
 
 维护者的发布操作示例：
 
 ```powershell
-git tag v0.1.1
-git push origin v0.1.1
+git tag v0.1.2
+git push origin v0.1.2
 ```
 
 工作流仅 Release job 使用 `contents: write`，并使用 GitHub 自动提供的 `GITHUB_TOKEN`；不需要个人 API Key。构建先写入草稿，安装器与校验文件都上传成功后才公开。工作流使用已核验并固定提交 SHA 的 GitHub / Tauri 官方 Actions。首次托管运行是否成功，以 Actions 记录和 Release 实际附件为准。

@@ -1564,3 +1564,34 @@ user = 选中文本。`temperature 0.2`。上下文可选附加当前页 `deck_p
 ### 15.5 已验证项（2026-09-14）
 
 M0 骨架、M1 阅读器（导入 / 单页连续 / 缩放旋转 / 目录 / 搜索 / 选区浮条）、M2 编辑器（实时预览、公式、时间戳、页面链接、三种模式、自动保存）、M3 标注（高亮备注、墨迹、文本框、擦除、撤销、导出 PDF 含中文备注）、M4 面板与翻译（mock LLM 联调通过，`http://*:*` 作用域）、M5 录音（cpal 采集、WAV 头回写、SampleClock、事件、暂停时钟停止、崩溃恢复代码）、M6 重放（跟随翻页、当时的笔记 diff 高亮、当时的标注、标记导航、倍速）、导图面板、M7 端侧转写（英文 zipformer2 int8 模型：离线 bench 与虚拟麦克风 live 全链路——partial 实时显示、endpoint 分段、`transcript_segments` 落库、面板按页分组、结束后重放仍在；设置页下载模型走应用内 reqwest，进度条正常；转写文本句子大小写）、M8 安装包（NSIS + MSI）。未做：M9+ 后端、转写标点模型、导图时间轴事件、会话打包导出。
+
+## 16. v2.2 增补（2026-09-16，优先级高于前文冲突处）
+
+### 16.1 录音的删除与重新转写
+
+- 删除：课件页顶部的"此 PDF 的录音"栏在选中某段录音时直接显示"重命名""删除"图标按钮（原"更多"菜单中的两项保留），删除走 `domain/deletion.ts` 的 `deleteSessionWithFiles`（行墓碑 + 事件 / 转写 / 总结硬删 + WAV / M4A 文件）。录音进行中按钮禁用。
+- 重新转写：replay 形态下转写面板头部的 `refresh` 按钮、空状态里的"用本机模型转写这段录音"、"更多"菜单的"重新转写"三处入口，先弹确认框（已有转写时说明会替换设备转写及其纠错 / 翻译）。
+- Rust 命令 `asr_transcribe_file(job_id, model_dir, wav_path)`：用 `WavPcmReader` 按 1600 采样一块流式读 WAV（不整段载入内存），喂给与实时转写相同的 `Decoder`（端点、时间戳规则一致），每 1 s 音频发 `asr://transcribe {job_id, done_ms, total_ms}`；`asr_transcribe_cancel(job_id)` 在块间取消，返回 `cancelled`。只接受 16 kHz PCM16。
+- 前端 `controllers/retranscribe.ts`（zustand）：录音进行中拒绝；模型取 `session.lang_mode`（无则设置里的语言）对应的就绪模型（16.2 的选择与回退规则），无模型抛 `NoModelError`（面板提示并跳到设置 → 转写模型）；完成后 `replaceDeviceSegments` 删除该会话 `source='device'` 的旧行、按 40 行一批插入新行，`page_index` 用 `Timeline.pageAt(t0)` 按当时翻页事件归页，`asr_status` 置 `device`。失败或取消不动旧转写。
+
+### 16.2 转写模型分档
+
+- `core/asrModels.ts` 按下载大小分四档：轻量 ≤200 MiB（建议 4 GB 内存）、标准 ≤500 MiB（8 GB）、高精度 ≤1000 MiB（8 GB）、旗舰 ≤2000 MiB（16 GB）。每个模型标注发布日期、精度、语言、`实测占用`或`预估占用`（进程工作集，含 onnxruntime；实测来自 `src-tauri/tests/asr_memory.rs`：en int8 141 MiB、中英 int8 262 MiB、zh int8 2025 250 MiB；估算 ≈ int8 1.15× / fp16 2.1× / fp32 1.1× 权重 + 70 MiB）。
+- 模型清单（均为 sherpa-onnx 流式模型，可同时用于实时与离线重转写）：中英双语 2023-02-20 int8 / fp32；中文 small-ctc 2025-04-01 int8（zipformer2 CTC，单文件 `model.onnx`）、中文大模型 2025-06-30 int8 / fp16、中文 XL 2025-06-30 int8 / fp16；英文 2023-06-26 int8、英文 2023-06-21（LibriSpeech+GigaSpeech）int8 / fp32。文件逐个从 Hugging Face 下载并按 LFS 元数据的大小 / SHA-256 校验。
+- 选择：设置 `asr_model_zh` / `asr_model_en`（空 = 内置默认：中英 int8、英文 int8），语言"自动"沿用中文档位。`readyDirFor(lang, selected)` 依次尝试用户选择 → 内置默认 → 该语言其他已就绪模型。设置页每个已就绪模型下有"中文 / English 用这个模型"单选。
+- Rust `engine.rs`：`model_layout(dir)` 识别 transducer（encoder / decoder / joiner + tokens）或 zipformer2 CTC（`model.onnx` + tokens），`Decoder::new` 按布局构造 `OnlineModelConfig`。
+
+### 16.3 ChatGPT 账号（Codex）接入
+
+- 设置 → 翻译与 AI 新增"接入方式"：自定义 API（原有）/ ChatGPT 账号（Codex）。后者通过本机 Codex CLI 的 `codex app-server`（JSON-RPC over stdio）使用用户的 ChatGPT 订阅额度：MarkPDF 不接触 OAuth 令牌，登录 / 刷新 / 额度全部由 Codex 管理（`~/.codex/auth.json`）。
+- Rust `codex/mod.rs`：查找二进制（设置里的路径 → `~/.codex/bin` → PATH（含 npm 全局 `codex.cmd` 旁的 `node_modules/@openai/codex-<os>-<arch>/vendor/<triple>/bin/codex.exe`）→ `%APPDATA%
+pm`），`codex --version` 探测；懒启动一个 app-server 进程（Windows 下 `CREATE_NO_WINDOW`），reader 线程按行分发响应 / 通知，服务端请求（审批等）一律回错误避免挂起；窗口销毁时杀进程。命令：`codex_locate`、`codex_status`（`account/read`）、`codex_login_start`（`account/login/start {type: chatgpt}` 返回 authUrl，完成由 `account/login/completed` 通知转成 `codex://login` 事件）、`codex_login_cancel`、`codex_logout`、`codex_models`（`model/list` 全量分页）、`codex_rate_limits`、`codex_chat`、`codex_shutdown`。
+- `codex_chat`：每次请求新建 `thread/start {ephemeral, sandbox: read-only, approvalPolicy: never, baseInstructions = system 提示, config.features.memories = false, cwd = <appData>/codex-cwd}`，再 `turn/start {input: text, effort, disabledPluginIds: []}`，收集 `item/agentMessage/delta` 与 `turn/completed` 里的 agentMessage 文本；`turn.status = failed/interrupted` 或 `error` 通知即报错；超时 240 s。
+- 前端：`platform/codex.ts` 封装；设置 `llm_provider`（`custom` / `codex`）、`codex_model`、`codex_effort`、`codex_path`；`data/api/llm.ts` 的 `chat()` 在 provider 为 codex 时改走 `codex_chat`（system → baseInstructions，多轮对话拼成一条用户消息），`isLlmConfigured()` 对 codex 恒真。设置面板 `CodexSettings.tsx`：二进制检测 / 路径覆盖、账号状态与登录 / 退出、模型下拉（`displayName`，默认项标注）、推理强度下拉（来自该模型的 `supportedReasoningEfforts`，附说明）、本周额度、测试连接、条款与额度消耗提示（每次请求约 2 万 token 的 Codex 工具上下文）。
+- 已验证（2026-09-16，Codex CLI 0.154.0）：initialize → account/read（ChatGPT Pro 账号）→ model/list（gpt-6-astra 默认、gpt-5.6-sol / terra / luna、gpt-5.5，各自的 effort 档位）→ thread/start + turn/start 一轮 "OK" 回复全链路正常；Rust 侧同一链路由可选测试 `MARKPDF_CODEX_BIN=<codex.exe> cargo test --lib codex::tests::live_roundtrip -- --ignored --nocapture` 覆盖（会消耗一次极小的订阅额度）。设置页、模型分档页、重新转写与删除录音的入口已用 Playwright（Edge + 模拟 Tauri）冒烟；真实 Tauri 窗口内的登录按钮（打开浏览器授权页）未在本轮实机点过。
+
+### 16.4 编辑与交互修正
+
+- 文本框拖动 / 缩放改用 pointer capture + `touch-action: none` + `pointercancel` 收尾：触控或触笔拖动时浏览器不再把手势当作页面平移（此前会触发 `pointercancel`，框只在视觉上移动、数据库不写入，松手后回到原位）；移动中保持自动增高后的高度。左栏 / 右侧 Dock 分隔条同样改为 pointer 事件。
+- 实时预览公式：光标只要离开 `$…$` / `$$…$$` 本身的字符范围就渲染（含边界，输入闭合 `$` 后再输入任意字符即渲染），不再以整行为单位（Obsidian 行为）。
+- KaTeX 在 `.md-view` 与编辑器里统一为 1.05em、行高 1，块级公式外边距 0.3em，含公式的行与普通行间距一致。

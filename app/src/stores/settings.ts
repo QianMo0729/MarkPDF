@@ -5,6 +5,8 @@ import { getState, setState } from "../data/db/repos/syncState";
 /** Legacy explicit OpenAI protocol values remain readable for existing configurations. */
 export type LlmApiFormat = "openai" | "chat-completions" | "responses" | "claude-messages";
 export type TranslationMode = "local" | "ai";
+/** Where AI requests go: a user-supplied API, or the user's ChatGPT plan through the Codex app-server (docs/SPEC.md 16.3). */
+export type LlmProvider = "custom" | "codex";
 
 export interface Settings {
   theme: ThemePref;
@@ -16,10 +18,19 @@ export interface Settings {
   translationMode: TranslationMode;
   transcriptTranslationEnabled: boolean;
   transcriptCorrectionEnabled: boolean;
+  llmProvider: LlmProvider;
   llmApiFormat: LlmApiFormat;
   llmBaseUrl: string;
   llmApiKey: string;
   llmModel: string;
+  /** Codex model id and reasoning effort chosen from `model/list`; "" = Codex's default. */
+  codexModel: string;
+  codexEffort: string;
+  /** Optional path to the codex binary when it is not on PATH. */
+  codexPath: string;
+  /** Selected on-device transcription model per language (docs/SPEC.md 16.2); "" = the built-in default. */
+  asrModelZh: string;
+  asrModelEn: string;
   highlightColor: string;
   inkColor: string;
   inkWidth: number;
@@ -46,10 +57,16 @@ export const DEFAULT_SETTINGS: Settings = {
   translationMode: "local",
   transcriptTranslationEnabled: false,
   transcriptCorrectionEnabled: false,
+  llmProvider: "custom",
   llmApiFormat: "openai",
   llmBaseUrl: "",
   llmApiKey: "",
   llmModel: "",
+  codexModel: "",
+  codexEffort: "",
+  codexPath: "",
+  asrModelZh: "",
+  asrModelEn: "",
   highlightColor: "#F5C542",
   inkColor: "#E5484D",
   inkWidth: 2,
@@ -76,10 +93,16 @@ const KEYS: Record<keyof Settings, string> = {
   translationMode: "translation_mode",
   transcriptTranslationEnabled: "transcript_translation_enabled",
   transcriptCorrectionEnabled: "transcript_correction_enabled",
+  llmProvider: "llm_provider",
   llmApiFormat: "llm_api_format",
   llmBaseUrl: "llm_base_url",
   llmApiKey: "llm_api_key",
   llmModel: "llm_model",
+  codexModel: "codex_model",
+  codexEffort: "codex_effort",
+  codexPath: "codex_path",
+  asrModelZh: "asr_model_zh",
+  asrModelEn: "asr_model_en",
   highlightColor: "highlight_color",
   inkColor: "ink_color",
   inkWidth: "ink_width",
@@ -104,6 +127,7 @@ function decode<K extends keyof Settings>(key: K, raw: string): Settings[K] {
   const def = DEFAULT_SETTINGS[key];
   if (key === "llmApiFormat" && !["openai", "chat-completions", "responses", "claude-messages"].includes(raw)) return def;
   if (key === "translationMode" && !["local", "ai"].includes(raw)) return def;
+  if (key === "llmProvider" && !["custom", "codex"].includes(raw)) return def;
   if (typeof def === "boolean") return (raw === "1") as Settings[K];
   if (typeof def === "number") {
     const n = Number(raw);

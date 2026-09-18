@@ -32,6 +32,43 @@ export async function insertDeviceSegment(sessionId: string, t0Ms: number, t1Ms:
   return row;
 }
 
+/**
+ * Replace the on-device transcript of a session with a fresh offline decode
+ * (docs/SPEC.md 16.1). Old rows go away together with their corrections and
+ * translations; inserts are batched so a long lecture does not take hundreds of
+ * round trips.
+ */
+export async function replaceDeviceSegments(
+  sessionId: string,
+  segments: { t0_ms: number; t1_ms: number; text: string; page_index: number | null }[],
+): Promise<TranscriptSegmentRow[]> {
+  const now = nowIso();
+  const rows: TranscriptSegmentRow[] = segments.map((s) => ({
+    id: newId(),
+    session_id: sessionId,
+    source: "device",
+    t0_ms: Math.max(0, Math.floor(s.t0_ms)),
+    t1_ms: Math.max(0, Math.floor(s.t1_ms)),
+    text: s.text,
+    translation: null,
+    lang: detectLang(s.text),
+    page_index: s.page_index,
+    created_at: now,
+    updated_at: now,
+    dirty: 1,
+  }));
+  await execute("DELETE FROM transcript_segments WHERE session_id = ? AND source = 'device'", [sessionId]);
+  const cols = ["id", "session_id", "source", "t0_ms", "t1_ms", "text", "translation", "lang", "page_index", "created_at", "updated_at", "dirty"] as const;
+  const BATCH = 40;
+  for (let i = 0; i < rows.length; i += BATCH) {
+    const chunk = rows.slice(i, i + BATCH);
+    const placeholders = chunk.map(() => `(${cols.map(() => "?").join(", ")})`).join(", ");
+    await execute(`INSERT INTO transcript_segments (${cols.join(", ")}) VALUES ${placeholders}`, chunk.flatMap((r) => cols.map((c) => r[c])));
+  }
+  notifyChanged("transcript_segments");
+  return rows;
+}
+
 export function listSegments(sessionId: string, source?: "device" | "server"): Promise<TranscriptSegmentRow[]> {
   return source
     ? select<TranscriptSegmentRow>("SELECT * FROM transcript_segments WHERE session_id = ? AND source = ? ORDER BY t0_ms", [sessionId, source])

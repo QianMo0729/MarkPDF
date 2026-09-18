@@ -15,6 +15,7 @@
 }
 .mp-ann-layer.tool-text {
   cursor: text;
+  touch-action: none;
 }
 .mp-ann-layer.tool-erase {
   cursor: cell;
@@ -74,6 +75,8 @@
 .mp-tb {
   position: absolute;
   pointer-events: auto;
+  /* a finger or pen dragging the box must move it, not pan the page (a pan cancels the pointer) */
+  touch-action: none;
   background: transparent;
   border: 1px solid transparent;
   border-radius: 2px;
@@ -102,6 +105,7 @@
   position: absolute;
   z-index: 3;
   cursor: move;
+  touch-action: none;
 }
 .mp-tb-edge.n { left: 0; right: 0; top: -5px; height: 8px; }
 .mp-tb-edge.s { left: 0; right: 0; bottom: -5px; height: 8px; }
@@ -181,6 +185,7 @@
   position: absolute;
   width: 8px;
   height: 8px;
+  touch-action: none;
   background: var(--surface);
   border: 1px solid var(--accent);
   border-radius: 2px;

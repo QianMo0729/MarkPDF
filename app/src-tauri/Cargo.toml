@@ -1,6 +1,6 @@
 [package]
 name = "markpdf"
-version = "0.1.1"
+version = "0.1.2"
 description = "MarkPDF: PDF reader, Markdown notes and lecture recording"
 authors = ["MarkPDF"]
 edition = "2021"
@@ -35,7 +35,7 @@ sherpa-onnx = "1.13"
 tauri-plugin-single-instance = "2"
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.59", features = ["Win32_System_Power", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }
+windows-sys = { version = "0.59", features = ["Win32_System_Power", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_System_ProcessStatus", "Win32_System_Threading"] }
 
 [profile.release]
 # thin LTO + a few codegen units keep peak memory well under the machine's ~3 GB free

@@ -2,6 +2,7 @@ import type { IDockviewPanelProps } from "dockview-react";
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { S } from "../../../core/strings";
+import { ConfirmDialog } from "../../../core/ui/Dialog";
 import { Icon } from "../../../core/ui/Icon";
 import { toast } from "../../../core/ui/Toast";
 import { fmtClock } from "../../../core/utils/time";
@@ -11,6 +12,7 @@ import type { TranscriptSegmentRow } from "../../../data/db/schema";
 import { useSettings } from "../../../stores/settings";
 import { usePlayback } from "../controllers/playback";
 import { useRecording } from "../controllers/recording";
+import { NoModelError, useRetranscribe } from "../controllers/retranscribe";
 import { useTranscriptTranslation } from "../controllers/useTranscriptTranslation";
 import { useTranscriptCorrection } from "../controllers/useTranscriptCorrection";
 import { useSharedTranscriptTranslation } from "../controllers/TranscriptTranslationContext";
@@ -39,6 +41,9 @@ export function TranscriptPanel(props: IDockviewPanelProps) {
   const setSetting = useSettings((s) => s.set);
   const sharedTranslation = useSharedTranscriptTranslation();
   const [query, setQuery] = useState("");
+  const [confirmRedo, setConfirmRedo] = useState(false);
+  const retranscribe = useRetranscribe();
+  const redoJob = sessionId ? retranscribe.jobs[sessionId] : undefined;
   const [showTranslation, setShowTranslation] = useState(true);
   const [follow, setFollow] = useState(true);
   const listRef = useRef<HTMLDivElement>(null);
@@ -137,6 +142,22 @@ export function TranscriptPanel(props: IDockviewPanelProps) {
     if (correctionEnabled) correction.stop();
     void setSetting("transcriptCorrectionEnabled", !correctionEnabled).catch((error) => toast(S.errors.generic(String(error)), "error"));
   };
+  const startRedo = async () => {
+    setConfirmRedo(false);
+    if (!sessionId) return;
+    try {
+      await retranscribe.start(sessionId);
+      const done = useRetranscribe.getState().jobs[sessionId];
+      if (done?.status === "done") toast(S.transcript.redone(done.segments ?? 0));
+    } catch (e) {
+      if (e instanceof NoModelError) {
+        toast(S.transcript.noModel, "error");
+        navigate("/settings/asr");
+      } else toast(S.errors.generic(String(e instanceof Error ? e.message : e)), "error");
+    }
+  };
+  const redoBusy = redoJob?.status === "running";
+  const canRedo = mode === "replay" && !!sessionId && !redoBusy;
 
   let lastPage: number | null = null;
 
@@ -160,7 +181,32 @@ export function TranscriptPanel(props: IDockviewPanelProps) {
             显示翻译
           </button>
         )}
+        {mode === "replay" && (
+          <button className="icon-btn" aria-label={S.transcript.redo} title={S.transcript.redoHint} disabled={!canRedo} onClick={() => setConfirmRedo(true)}>
+            <Icon name="refresh" size={18} />
+          </button>
+        )}
       </div>
+      {redoJob && (
+        <div className={`transcript-status caption ${redoJob.status === "error" ? "transcript-translation-error" : ""}`} role="status" aria-live="polite">
+          {redoJob.status === "running" ? (
+            <>
+              <span>{S.transcript.redoing}{redoJob.totalMs > 0 ? ` ${Math.min(100, Math.round((redoJob.doneMs / redoJob.totalMs) * 100))}%` : ""}</span>
+              <button className="btn btn-text toolbar-small" onClick={() => void retranscribe.cancel(sessionId!)}>{S.common.cancel}</button>
+            </>
+          ) : redoJob.status === "error" ? (
+            <>
+              <span>{S.transcript.redoFailed(redoJob.error ?? "")}</span>
+              <button className="btn btn-text toolbar-small" onClick={() => retranscribe.dismiss(sessionId!)}>{S.common.close}</button>
+            </>
+          ) : (
+            <>
+              <span>{S.transcript.redone(redoJob.segments ?? 0)}</span>
+              <button className="btn btn-text toolbar-small" onClick={() => retranscribe.dismiss(sessionId!)}>{S.common.close}</button>
+            </>
+          )}
+        </div>
+      )}
       {mode === "live" && asr !== "on" && (
         <div className="transcript-status caption" role="status">
           <span>{asr === "error" ? S.errors.asrModel : chip.label}</span>
@@ -219,6 +265,11 @@ export function TranscriptPanel(props: IDockviewPanelProps) {
                   这节课没有转写
                 </div>
                 <div className="body-small">{localMode ? "登录后可以上传录音，由服务器做更准确的转写。" : "录音上传后会由服务器转写。"}</div>
+                {canRedo && (
+                  <button className="btn btn-outlined" style={{ marginTop: 8 }} onClick={() => setConfirmRedo(true)}>
+                    <Icon name="refresh" size={18} />{S.transcript.redoNow}
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -261,6 +312,14 @@ export function TranscriptPanel(props: IDockviewPanelProps) {
       )}
       <span hidden>{props.api.id}</span>
       <span hidden>{S.panels.transcript}</span>
+      <ConfirmDialog
+        open={confirmRedo}
+        title={S.transcript.redo}
+        body={rows.length > 0 ? S.transcript.redoBodyReplace : S.transcript.redoBody}
+        confirmLabel={S.transcript.redoConfirm}
+        onCancel={() => setConfirmRedo(false)}
+        onConfirm={() => void startRedo()}
+      />
     </div>
   );
 }

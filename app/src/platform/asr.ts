@@ -27,6 +27,20 @@ export const asrStop = () => invoke<void>("asr_stop");
 /** Dev/test: decode a 16 kHz WAV offline with the same engine. */
 export const asrBench = (modelDir: string, wavPath: string) => invoke<AsrBenchResult>("asr_bench", { modelDir, wavPath });
 
+export interface AsrTranscribeProgress {
+  job_id: string;
+  done_ms: number;
+  total_ms: number;
+}
+
+/** Re-transcribe a whole recording offline (docs/SPEC.md 16.1); progress arrives on `asr://transcribe`. */
+export const asrTranscribeFile = (jobId: string, modelDir: string, wavPath: string) =>
+  invoke<AsrBenchResult>("asr_transcribe_file", { jobId, modelDir, wavPath });
+export const asrTranscribeCancel = (jobId: string) => invoke<boolean>("asr_transcribe_cancel", { jobId });
+export function onAsrTranscribeProgress(cb: (p: AsrTranscribeProgress) => void): Promise<UnlistenFn> {
+  return listen<AsrTranscribeProgress>("asr://transcribe", (e) => cb(e.payload));
+}
+
 export function onAsrPartial(cb: (text: string) => void): Promise<UnlistenFn> {
   return listen<{ text: string }>("asr://partial", (e) => cb(e.payload.text));
 }

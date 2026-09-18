@@ -95,15 +95,32 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* math */
+/* math: KaTeX defaults to 1.21em (its font has a small x-height); that makes a
+   line with a formula taller than its neighbours. Size it like the body text and
+   keep display math margins tight so paragraphs stay evenly spaced. */
+.md-math .katex {
+  font-size: 1.05em;
+  line-height: 1;
+}
 .md-math-inline {
   padding: 0 2px;
+  vertical-align: baseline;
+}
+.md-math-inline .katex {
+  display: inline-block;
+  vertical-align: -0.12em;
 }
 .md-math-block {
   display: block;
   text-align: center;
-  padding: 8px 0;
+  padding: 4px 0;
   overflow-x: auto;
+}
+.md-math-block .katex-display {
+  margin: 0.3em 0;
+}
+.md-math-block .katex-display > .katex {
+  font-size: 1.1em;
 }
 .md-math-src {
   color: var(--text2);

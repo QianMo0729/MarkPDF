@@ -1,12 +1,12 @@
 # MarkPDF
 
-**[下载 Windows 安装包（.exe）](https://github.com/QianMo0729/MarkPDF/releases/download/v0.1.1/MarkPDF_0.1.1_x64-setup.exe)** · [所有版本](https://github.com/QianMo0729/MarkPDF/releases) · [v0.1.1 更新说明](docs/RELEASE_NOTES_0.1.1.md)
+**[下载 Windows 安装包（.exe）](https://github.com/QianMo0729/MarkPDF/releases/download/v0.1.2/MarkPDF_0.1.2_x64-setup.exe)** · [所有版本](https://github.com/QianMo0729/MarkPDF/releases) · [v0.1.2 更新说明](docs/RELEASE_NOTES_0.1.2.md)
 
 把 PDF、Markdown 笔记和课堂录音放在一起。围绕同一份课件阅读、标注、记录和回听，自由安排笔记、转写与翻译面板。
 
 ## 安装与开始使用
 
-1. 打开 [Releases 下载页](https://github.com/QianMo0729/MarkPDF/releases/latest)，在 **Assets** 中下载 `MarkPDF_0.1.1_x64-setup.exe`。
+1. 打开 [Releases 下载页](https://github.com/QianMo0729/MarkPDF/releases/latest)，在 **Assets** 中下载 `MarkPDF_0.1.2_x64-setup.exe`。
 2. 双击安装包，按安装向导完成安装。使用 MarkPDF **不需要安装 Node.js 或 Rust**。若电脑缺少 WebView2，安装器会联网下载所需运行组件。
 3. 新建课程并导入 PDF，即可阅读和记笔记。需要录音时，在该 PDF 顶部点击「新增录音」。
 
@@ -19,6 +19,7 @@
 - **Markdown 笔记**：实时预览、源码与阅读模式，支持公式、页面链接和录音时间戳。回放时默认显示当前笔记，也可切换查看当时的笔记。
 - **自由分栏**：标签栏右侧的分栏图标一键上下分栏，当前标签留在上方，上一个标签进入下方；右键可选择左右分栏。每栏都有标签和「+」，支持拖动组合、调整大小并保存布局。
 - **实时转写与翻译**：转写在句子尚未结束时跟随最新内容，主动回看时暂停跟随。开启「实时翻译」后，完整句逐条翻译并保存。
+- **重新转写与删除录音**：回放时可用本机模型对整段录音重新转写（按当时的翻页归到各页），录音栏可直接重命名或删除当前录音。
 - **可选上下文纠错**：用自己配置的 AI 服务检查同音词等转写错误，并在下一句结束后结合后文复核。默认关闭，修正后可展开核对原始转写，也能搜索原文。
 
 ![MarkPDF 的 PDF、笔记与转写分栏界面](docs/images/markpdf-demo.png)
@@ -29,9 +30,13 @@
 
 ### 本地使用
 
-- 实时转写使用本地语音模型，首次使用请到「设置 → 转写模型」下载。
+- 实时转写使用本地语音模型，首次使用请到「设置 → 转写模型」下载。模型按下载大小分为轻量 / 标准 / 高精度 / 旗舰四档（≤200 / 500 / 1000 / 2000 MiB），每档标注建议内存与实际运行占用，中文有 2025 年的新模型可选。
 - 中英互译默认使用 Mozilla Bergamot 本地引擎，在「设置 → 翻译与 AI」下载所需方向的模型。
 - 模型首次下载需要网络，下载完成后可离线使用；本地转写和本地翻译不需要 AI 密钥。
+
+### 用 ChatGPT 账号（Codex）
+
+在「设置 → 翻译与 AI → 接入方式」选择 **ChatGPT 账号（Codex）**，需要本机已安装 Codex CLI（`npm install -g @openai/codex`，或填写 codex.exe 路径）。点击「登录 ChatGPT」在浏览器完成登录后，可从列表里选择模型和推理强度，翻译、解释和纠错都走你的订阅额度，不需要 API Key。登录与令牌由 Codex 自己保存在 `~/.codex`，MarkPDF 不保存凭据。OpenAI 目前允许第三方工具通过 Codex 登录使用订阅，但条款没有明文承诺，政策可能变化。
 
 ### 使用自己的 AI 服务
 
@@ -48,5 +53,5 @@ AI 翻译、解释和上下文纠错会将相应文本发送到你配置的服�
 ## 开发与反馈
 
 - [从源码构建](docs/BUILDING.md)
-- [v0.1.1 更新说明](docs/RELEASE_NOTES_0.1.1.md)
+- [v0.1.2 更新说明](docs/RELEASE_NOTES_0.1.2.md)
 - [提交问题或建议](https://github.com/QianMo0729/MarkPDF/issues)

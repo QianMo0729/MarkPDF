@@ -11,6 +11,7 @@ import { getLlmProtocol, LLM_FORMAT_LABELS, resolveLlmEndpoint, testConnection }
 import { LocalTranslationSettings } from "../../data/translation/LocalTranslationSettings";
 import { clearThumbnailCache } from "../../domain/deletion";
 import { useSettings, type LlmApiFormat, type Settings } from "../../stores/settings";
+import { CodexSettings } from "./CodexSettings";
 import "./settings.css";
 
 type GroupId = "account" | "transcription" | "ai" | "annotations" | "reading" | "storage" | "sync" | "appearance" | "shortcuts" | "about";
@@ -174,6 +175,7 @@ function AiGroup() {
   const [target, setTarget] = useSettingField("translateTarget");
   const [mode, setMode] = useSettingField("translationMode");
   const [format, setFormat] = useSettingField("llmApiFormat");
+  const [provider, setProvider] = useSettingField("llmProvider");
   let endpoint = "";
   try { if (baseUrl.trim()) endpoint = resolveLlmEndpoint(baseUrl, getLlmProtocol(baseUrl, format)); } catch { /* validate when testing */ }
   return (
@@ -193,8 +195,13 @@ function AiGroup() {
       </Row>
       <LocalTranslationSettings />
       <h3 className="settings-subtitle">AI 服务</h3>
+      <p className="caption">转写面板的“上下文纠错”默认关闭。开启后使用这里配置的 AI 服务，结合前后句修正同音词等转写错误，并保留原始转写供核对。纠错与实时翻译可独立开关。</p>
+      <Row label="接入方式" hint="自定义 API：填写 OpenAI / Claude 兼容接口。ChatGPT 账号：用本机 Codex CLI 登录，走订阅额度。">
+        <Segmented value={provider} onChange={setProvider} options={[{ value: "custom", label: "自定义 API" }, { value: "codex", label: "ChatGPT 账号" }]} />
+      </Row>
+      {provider === "codex" && <CodexSettings />}
+      {provider === "custom" && <>
       <p className="caption">按接口要求选择发送格式，服务地址、API Key 和模型由你填写。OpenAI 格式兼容 Codex；采样参数使用服务默认值。</p>
-      <p className="caption">转写面板的“上下文纠错”默认关闭。开启后使用这里填写的 AI 服务，结合前后句修正同音词等转写错误，并保留原始转写供核对。纠错与实时翻译可独立开关。</p>
       <Row label="发送格式">
         <select className="input settings-input" aria-label="发送格式" value={format === "claude-messages" ? "claude-messages" : "openai"} onChange={(e) => setFormat(e.target.value as LlmApiFormat)}>
           {(Object.entries(LLM_FORMAT_LABELS) as [LlmApiFormat, string][]).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -213,6 +220,7 @@ function AiGroup() {
       <Row label={S.settings.aiTest}>
         <TestConnectionButton disabled={!baseUrl.trim() || !apiKey.trim() || !model.trim()} />
       </Row>
+      </>}
     </>
   );
 }

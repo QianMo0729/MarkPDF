@@ -6,6 +6,10 @@ import katex from "katex";
  * KaTeX live preview for `$…$` (inline) and `$$…$$` (block). The rendered
  * widget shows whenever the cursor is outside the formula; inside it the
  * source stays visible with a subtle mark (docs/SPEC.md 6.5.7 rule 6).
+ *
+ * "Inside" is the formula's own character range (delimiters included), like
+ * Obsidian: typing the closing `$` still shows the source, the next character
+ * after it renders the formula. The rest of the line is not affected.
  */
 
 const INLINE_RE = /(?<!\$)\$(?!\$)([^$\n]+?)\$(?!\$)/g;
@@ -37,14 +41,11 @@ class MathWidget extends WidgetType {
   }
 }
 
-function cursorTouches(state: EditorState, from: number, to: number): boolean {
-  const doc = state.doc;
-  const startLine = doc.lineAt(from).number;
-  const endLine = doc.lineAt(to).number;
+export function cursorTouches(state: EditorState, from: number, to: number): boolean {
   for (const r of state.selection.ranges) {
-    const a = doc.lineAt(r.from).number;
-    const b = doc.lineAt(r.to).number;
-    if (b >= startLine && a <= endLine) return true;
+    // Boundaries count: a caret right before the opening `$` or right after the
+    // closing `$` is still editing the formula.
+    if (r.to >= from && r.from <= to) return true;
   }
   return false;
 }

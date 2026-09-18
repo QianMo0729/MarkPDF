@@ -109,7 +109,8 @@ async function startAsr(set: (p: Partial<RecordingStore>) => void, get: () => Re
   const generation = ++asrGeneration;
   const isCurrent = () => generation === asrGeneration && targetSessionId !== null
     && get().sessionId === targetSessionId && get().status !== "idle";
-  const { asrEnabled, langMode } = useSettings.getState().settings;
+  const { asrEnabled, langMode, asrModelZh, asrModelEn } = useSettings.getState().settings;
+  const selectedModels = { zh: asrModelZh, en: asrModelEn };
   if (!asrEnabled) {
     set({ asr: "off", partial: "" });
     return;
@@ -122,12 +123,12 @@ async function startAsr(set: (p: Partial<RecordingStore>) => void, get: () => Re
     if (!isCurrent()) return;
     // A model copy that is still being hash-checked (first start after an upgrade) is
     // not "ready" yet: wait for the verdict instead of silently recording without ASR.
-    const wanted = modelForLang(langMode).id;
+    const wanted = modelForLang(langMode, selectedModels).id;
     for (let waited = 0; useModelManager.getState().verifying.has(wanted) && waited < 30_000; waited += 250) {
       await new Promise((r) => window.setTimeout(r, 250));
       if (!isCurrent()) return;
     }
-    const dir = await useModelManager.getState().readyDirFor(langMode);
+    const dir = await useModelManager.getState().readyDirFor(langMode, selectedModels);
     if (!isCurrent()) return;
     if (!dir) {
       set({ asr: "no_model", partial: "" });

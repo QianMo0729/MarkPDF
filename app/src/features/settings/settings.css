@@ -79,6 +79,9 @@
   flex-wrap: wrap;
   justify-content: flex-end;
 }
+.settings-row > .row > .segmented {
+  flex-shrink: 0;
+}
 @media (max-width: 600px) {
   .settings-row {
     flex-wrap: wrap;

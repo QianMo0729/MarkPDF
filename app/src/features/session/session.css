@@ -69,6 +69,7 @@
   flex: 0 0 8px;
   margin: 0 -3.5px;
   cursor: col-resize;
+  touch-action: none;
   position: relative;
   z-index: 2;
 }

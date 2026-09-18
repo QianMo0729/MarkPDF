@@ -16,6 +16,7 @@ import { getDeck, getDeckPages, updateDeck } from "../../data/db/repos/decks";
 import { getSession, listSessionsForDeck, updateSession } from "../../data/db/repos/sessions";
 import { MoveDeckDialog } from "../course/MoveDeckDialog";
 import { recordingsForDeck, selectedRecordingId } from "./deckRecordings";
+import { NoModelError, useRetranscribe } from "./controllers/retranscribe";
 import { deleteSessionWithFiles } from "../../domain/deletion";
 import { printFile } from "../../platform/files";
 import { getState, setState } from "../../data/db/repos/syncState";
@@ -63,6 +64,24 @@ interface Props {
 }
 
 const DOCK_WIDTH_KEY = "side_panel_width";
+
+/** Divider drags: capture the pointer (mouse, pen or finger) and end on release or cancel. */
+function trackDividerPointer(e: React.PointerEvent, onMove: (ev: PointerEvent) => void, onEnd: () => void): void {
+  const target = e.currentTarget as HTMLElement;
+  const id = e.pointerId;
+  try { target.setPointerCapture(id); } catch { /* ignore */ }
+  const finish = () => {
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", finish);
+    window.removeEventListener("pointercancel", finish);
+    try { if (target.hasPointerCapture?.(id)) target.releasePointerCapture(id); } catch { /* ignore */ }
+    onEnd();
+  };
+  const move = (ev: PointerEvent) => { if (ev.pointerId === id) onMove(ev); };
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", finish);
+  window.addEventListener("pointercancel", finish);
+}
 const DOCK_MIN = 320;
 const DOCK_DEFAULT = 400;
 const RAIL_MIN = 96;
@@ -283,40 +302,34 @@ export function SessionScreen({ kind }: Props) {
   const railWidthSetting = useSettings((s) => s.settings.railWidth);
   const [railWidthLive, setRailWidthLive] = useState<number | null>(null);
   const railWidth = railWidthLive ?? Math.min(RAIL_MAX, Math.max(RAIL_MIN, railWidthSetting));
-  const startRailResize = (e: React.MouseEvent) => {
+  const startRailResize = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
     e.preventDefault();
     const startX = e.clientX;
     const startW = railWidth;
     const clamp = (x: number) => Math.min(RAIL_MAX, Math.max(RAIL_MIN, startW + (x - startX)));
-    const onMove = (ev: MouseEvent) => setRailWidthLive(clamp(ev.clientX));
-    const onUp = (ev: MouseEvent) => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
+    let lastX = startX;
+    trackDividerPointer(e, (ev) => { lastX = ev.clientX; setRailWidthLive(clamp(ev.clientX)); }, () => {
       setRailWidthLive(null);
-      void setSetting("railWidth", clamp(ev.clientX));
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+      void setSetting("railWidth", clamp(lastX));
+    });
   };
   const toggleRail = useCallback(() => {
     if (expanded) void setSetting("railCollapsed", !railCollapsed);
     else setRailOverlay((v) => !v);
   }, [expanded, railCollapsed, setSetting]);
 
-  const startResize = (e: React.MouseEvent) => {
+  const startResize = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
     e.preventDefault();
     const startX = e.clientX;
     const startW = dockWidth;
     const max = Math.floor(window.innerWidth * 0.5);
     const clamp = (x: number) => Math.min(max, Math.max(DOCK_MIN, startW + (startX - x)));
-    const onMove = (ev: MouseEvent) => setDockWidth(clamp(ev.clientX));
-    const onUp = (ev: MouseEvent) => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-      setState(DOCK_WIDTH_KEY, String(clamp(ev.clientX))).catch(() => undefined);
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+    let lastX = startX;
+    trackDividerPointer(e, (ev) => { lastX = ev.clientX; setDockWidth(clamp(ev.clientX)); }, () => {
+      setState(DOCK_WIDTH_KEY, String(clamp(lastX))).catch(() => undefined);
+    });
   };
 
   // ----- export / print -----
@@ -583,6 +596,7 @@ export function SessionScreen({ kind }: Props) {
       ...(mode !== "reading" && session.data
         ? [
           { label: "重命名当前录音", icon: "edit", onClick: () => setRenamingRecording(true) },
+          ...(mode === "replay" ? [{ label: S.transcript.redo, icon: "refresh", onClick: () => void redoTranscript() }] : []),
           { label: "删除当前录音", icon: "delete", danger: true, onClick: () => setConfirmDelete(true) },
         ]
         : [{ label: S.session.importNewVersion, icon: "upload_file", onClick: () => toast(S.panels.comingSoon) }]),
@@ -591,6 +605,19 @@ export function SessionScreen({ kind }: Props) {
   const rename = async (value: string) => {
     if (deck.data) await updateDeck(deck.data.id, { title: value });
     setRenaming(false);
+  };
+  const redoTranscript = async () => {
+    if (!session.data) return;
+    try {
+      await useRetranscribe.getState().start(session.data.id);
+      const done = useRetranscribe.getState().jobs[session.data.id];
+      if (done?.status === "done") toast(S.transcript.redone(done.segments ?? 0));
+    } catch (e) {
+      if (e instanceof NoModelError) {
+        toast(S.transcript.noModel, "error");
+        navigate("/settings/asr");
+      } else toast(S.errors.generic(String(e instanceof Error ? e.message : e)), "error");
+    }
   };
 
   const onBack = () => {
@@ -687,6 +714,14 @@ export function SessionScreen({ kind }: Props) {
             {s.title} · {fmtDateTime(s.started_at ?? s.created_at)}{s.duration_ms != null ? ` · ${fmtDuration(s.duration_ms)}` : ""}
           </option>)}
         </select>
+        {currentRecording && (
+          <>
+            <button className="icon-btn" aria-label="重命名当前录音" title="重命名当前录音" disabled={rec.status !== "idle" || rec.starting}
+              onClick={() => setRenamingRecording(true)}><Icon name="edit" size={18} /></button>
+            <button className="icon-btn" aria-label="删除当前录音" title="删除当前录音" disabled={rec.status !== "idle" || rec.starting}
+              onClick={() => setConfirmDelete(true)}><Icon name="delete" size={18} /></button>
+          </>
+        )}
         <button className="btn btn-outlined" disabled={!deck.data || rec.status !== "idle" || rec.starting || creating}
           onClick={() => void startClass()}><Icon name="mic" size={18} />{creating ? "准备中…" : "新增录音"}</button>
       </div>
@@ -695,7 +730,7 @@ export function SessionScreen({ kind }: Props) {
         {expanded && railOpen && (
           <>
             {rail}
-            <div className="session-divider rail-divider" onMouseDown={startRailResize} role="separator" aria-orientation="vertical" />
+            <div className="session-divider rail-divider" onPointerDown={startRailResize} role="separator" aria-orientation="vertical" />
           </>
         )}
         <div className="session-center">
@@ -750,7 +785,7 @@ export function SessionScreen({ kind }: Props) {
         </div>
         {expanded && dockOpen && (
           <>
-            <div className="session-divider" onMouseDown={startResize} role="separator" aria-orientation="vertical" />
+            <div className="session-divider" onPointerDown={startResize} role="separator" aria-orientation="vertical" />
             <aside className="session-dock" style={{ width: dockWidth }}>
               {dock}
             </aside>

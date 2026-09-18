@@ -1,8 +1,10 @@
 mod asr;
 mod audio;
+mod codex;
 mod commands;
 mod launch;
 
+use tauri::Manager;
 use tauri_plugin_sql::{Migration, MigrationKind};
 
 /// Database file name; plugin-sql resolves it inside the app config directory.
@@ -55,6 +57,8 @@ pub fn run() {
         .manage(launch::LaunchFiles::default())
         .manage(asr::AsrState::default())
         .manage(asr::model_manager::ActiveDownloads::default())
+        .manage(asr::ActiveTranscriptions::default())
+        .manage(codex::CodexState::default())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
@@ -92,7 +96,26 @@ pub fn run() {
             asr::asr_start,
             asr::asr_stop,
             asr::asr_bench,
+            asr::asr_transcribe_file,
+            asr::asr_transcribe_cancel,
+            codex::codex_locate,
+            codex::codex_status,
+            codex::codex_login_start,
+            codex::codex_login_cancel,
+            codex::codex_logout,
+            codex::codex_models,
+            codex::codex_rate_limits,
+            codex::codex_chat,
+            codex::codex_shutdown,
         ])
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::Destroyed = event {
+                // Do not leave a codex app-server running after the last window closes.
+                if let Some(state) = window.try_state::<codex::CodexState>() {
+                    codex::codex_shutdown(state);
+                }
+            }
+        })
         .run(tauri::generate_context!())
         .expect("error while running MarkPDF");
 }

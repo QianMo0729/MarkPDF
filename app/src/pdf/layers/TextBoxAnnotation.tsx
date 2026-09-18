@@ -33,6 +33,40 @@ const MIN_H = 24;
 /** Pointer travel (CSS px) before a press counts as a drag rather than a click. */
 const DRAG_SLOP = 4;
 
+/**
+ * Follow one pointer until it is released. The element captures the pointer so
+ * moves keep arriving outside it, and a `pointercancel` (touch / pen panning,
+ * window losing focus) ends the gesture like a release instead of leaving the
+ * box stranded at its live position with nothing committed.
+ */
+function trackPointer(e: React.PointerEvent, onMove: (ev: PointerEvent) => void, onEnd: () => void): void {
+  const target = e.currentTarget as HTMLElement;
+  const id = e.pointerId;
+  try {
+    target.setPointerCapture(id);
+  } catch {
+    /* jsdom / detached element */
+  }
+  const finish = () => {
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", finish);
+    window.removeEventListener("pointercancel", finish);
+    try {
+      if (target.hasPointerCapture?.(id)) target.releasePointerCapture(id);
+    } catch {
+      /* ignore */
+    }
+    onEnd();
+  };
+  const move = (ev: PointerEvent) => {
+    if (ev.pointerId !== id) return;
+    onMove(ev);
+  };
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", finish);
+  window.addEventListener("pointercancel", finish);
+}
+
 /** Markdown text box anchored on the page: render state + edit state (docs/SPEC.md 6.5.5). */
 export function TextBoxAnnotation({ row, geom, selected, editing, flash, readOnly, interactive, editOnClick, onSelect, onEdit, onEndEdit, onCommit, onOpenPage }: Props) {
   const base = rectToCss(geom, row.x, row.y, row.w, row.h);
@@ -43,6 +77,7 @@ export function TextBoxAnnotation({ row, geom, selected, editing, flash, readOnl
   const draftRef = useRef(row.markdown ?? "");
   const saveTimer = useRef<number | null>(null);
   const rect = live ?? base;
+  const rootRef = useRef<HTMLDivElement>(null);
   const fontPx = (row.font_size ?? 20) * geom.scale;
   /** Select or text tool, not read-only: the box can be moved and resized. */
   const manipulable = (interactive || !!editOnClick) && !readOnly;
@@ -107,28 +142,29 @@ export function TextBoxAnnotation({ row, geom, selected, editing, flash, readOnl
     if (!editing) onSelect();
     const startX = e.clientX;
     const startY = e.clientY;
-    const start = base;
-    let current = base;
+    // Keep the auto-grown height while moving so the box does not collapse to its stored height mid-drag.
+    const shownH = rootRef.current?.offsetHeight ?? base.height;
+    const start = { ...base, height: Math.max(base.height, shownH) };
+    let current = start;
     let moved = false;
-    const onMove = (ev: PointerEvent) => {
-      const dx = ev.clientX - startX;
-      const dy = ev.clientY - startY;
-      if (!moved && Math.hypot(dx, dy) < DRAG_SLOP) return;
-      moved = true;
-      current = { ...start, left: start.left + dx, top: start.top + dy };
-      setLive(current);
-    };
-    const onUp = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      setLive(null);
-      if (moved) {
-        const p = cssBoxToPage(geom, current);
-        onCommit({ x: clamp(p.x, 0, geom.widthPt - row.w), y: clamp(p.y, 0, geom.heightPt - row.h) });
-      } else onClick?.();
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
+    trackPointer(
+      e,
+      (ev) => {
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+        if (!moved && Math.hypot(dx, dy) < DRAG_SLOP) return;
+        moved = true;
+        current = { ...start, left: start.left + dx, top: start.top + dy };
+        setLive(current);
+      },
+      () => {
+        setLive(null);
+        if (moved) {
+          const p = cssBoxToPage(geom, { ...current, height: base.height });
+          onCommit({ x: clamp(p.x, 0, geom.widthPt - row.w), y: clamp(p.y, 0, geom.heightPt - row.h) });
+        } else onClick?.();
+      },
+    );
   };
 
   const onBodyPointerDown = (e: React.PointerEvent) => {
@@ -148,34 +184,33 @@ export function TextBoxAnnotation({ row, geom, selected, editing, flash, readOnl
     let current = base;
     const minW = MIN_W * geom.scale;
     const minH = MIN_H * geom.scale;
-    const onMove = (ev: PointerEvent) => {
-      const dx = ev.clientX - startX;
-      const dy = ev.clientY - startY;
-      let { left, top, width, height } = start;
-      if (h.includes("e")) width = Math.max(minW, start.width + dx);
-      if (h.includes("s")) height = Math.max(minH, start.height + dy);
-      if (h.includes("w")) {
-        width = Math.max(minW, start.width - dx);
-        left = start.left + start.width - width;
-      }
-      if (h.includes("n")) {
-        height = Math.max(minH, start.height - dy);
-        top = start.top + start.height - height;
-      }
-      current = { left, top, width, height };
-      setLive(current);
-    };
-    const onUp = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      setLive(null);
-      if (current !== start) {
-        const p = cssBoxToPage(geom, current);
-        onCommit({ x: p.x, y: p.y, w: p.w, h: p.h });
-      }
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
+    trackPointer(
+      e,
+      (ev) => {
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+        let { left, top, width, height } = start;
+        if (h.includes("e")) width = Math.max(minW, start.width + dx);
+        if (h.includes("s")) height = Math.max(minH, start.height + dy);
+        if (h.includes("w")) {
+          width = Math.max(minW, start.width - dx);
+          left = start.left + start.width - width;
+        }
+        if (h.includes("n")) {
+          height = Math.max(minH, start.height - dy);
+          top = start.top + start.height - height;
+        }
+        current = { left, top, width, height };
+        setLive(current);
+      },
+      () => {
+        setLive(null);
+        if (current !== start) {
+          const p = cssBoxToPage(geom, current);
+          onCommit({ x: p.x, y: p.y, w: p.w, h: p.h });
+        }
+      },
+    );
   };
 
   const height = live ? rect.height : Math.max(rect.height, contentH + 4);
@@ -184,6 +219,7 @@ export function TextBoxAnnotation({ row, geom, selected, editing, flash, readOnl
 
   return (
     <div
+      ref={rootRef}
       className={cls}
       style={{
         ...cssRectStyle({ ...rect, height }),

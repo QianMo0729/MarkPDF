@@ -16,7 +16,7 @@ use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
-use sherpa_onnx::{OnlineModelConfig, OnlineRecognizer, OnlineRecognizerConfig, OnlineStream, OnlineTransducerModelConfig};
+use sherpa_onnx::{OnlineModelConfig, OnlineRecognizer, OnlineRecognizerConfig, OnlineStream, OnlineTransducerModelConfig, OnlineZipformer2CtcModelConfig};
 use tauri::{AppHandle, Emitter};
 
 pub const EVT_PARTIAL: &str = "asr://partial";
@@ -56,6 +56,30 @@ pub struct StatusPayload {
 }
 
 pub const MODEL_FILES: [&str; 4] = ["encoder.onnx", "decoder.onnx", "joiner.onnx", "tokens.txt"];
+/// Streaming zipformer2 CTC models ship a single network (docs/SPEC.md 16.2).
+pub const CTC_MODEL_FILES: [&str; 2] = ["model.onnx", "tokens.txt"];
+
+/// Which sherpa-onnx streaming architecture a model directory holds.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ModelLayout {
+    /// encoder / decoder / joiner + tokens (zipformer transducer).
+    Transducer,
+    /// model.onnx + tokens (zipformer2 CTC).
+    Zipformer2Ctc,
+}
+
+/// Detects the layout from the files present; every required file must exist.
+pub fn model_layout(model_dir: &Path) -> Result<ModelLayout, String> {
+    if CTC_MODEL_FILES.iter().all(|f| model_dir.join(f).is_file()) {
+        return Ok(ModelLayout::Zipformer2Ctc);
+    }
+    for f in MODEL_FILES {
+        if !model_dir.join(f).is_file() {
+            return Err(format!("model file missing: {f}"));
+        }
+    }
+    Ok(ModelLayout::Transducer)
+}
 
 /// What the recorder sends to the engine.
 pub enum AsrInput {
@@ -79,14 +103,10 @@ pub struct Decoder {
 
 impl Decoder {
     pub fn new(model_dir: &Path, offset_ms: u64) -> Result<Self, String> {
-        for f in MODEL_FILES {
-            if !model_dir.join(f).is_file() {
-                return Err(format!("model file missing: {f}"));
-            }
-        }
+        let layout = model_layout(model_dir)?;
         let s = |f: &str| Some(model_dir.join(f).to_string_lossy().into_owned());
-        let config = OnlineRecognizerConfig {
-            model_config: OnlineModelConfig {
+        let model_config = match layout {
+            ModelLayout::Transducer => OnlineModelConfig {
                 transducer: OnlineTransducerModelConfig { encoder: s("encoder.onnx"), decoder: s("decoder.onnx"), joiner: s("joiner.onnx") },
                 tokens: s("tokens.txt"),
                 num_threads: 2,
@@ -96,6 +116,16 @@ impl Decoder {
                 model_type: None,
                 ..Default::default()
             },
+            ModelLayout::Zipformer2Ctc => OnlineModelConfig {
+                zipformer2_ctc: OnlineZipformer2CtcModelConfig { model: s("model.onnx") },
+                tokens: s("tokens.txt"),
+                num_threads: 2,
+                model_type: None,
+                ..Default::default()
+            },
+        };
+        let config = OnlineRecognizerConfig {
+            model_config,
             decoding_method: Some("greedy_search".into()),
             enable_endpoint: true,
             rule1_min_trailing_silence: 2.4,
@@ -196,11 +226,7 @@ impl AsrEngine {
     /// Starts loading the model on a worker thread. Samples sent to `sink()` are
     /// decoded as they arrive; `offset_ms` is the recorder clock at attach time.
     pub fn start(app: AppHandle, model_dir: &Path, offset_ms: u64) -> Result<Self, String> {
-        for f in MODEL_FILES {
-            if !model_dir.join(f).is_file() {
-                return Err(format!("model file missing: {f}"));
-            }
-        }
+        model_layout(model_dir)?;
         let (tx, rx) = std::sync::mpsc::sync_channel::<AsrInput>(ASR_QUEUE_CHUNKS);
         let stop = Arc::new(AtomicBool::new(false));
         let dir = model_dir.to_path_buf();
@@ -329,6 +355,98 @@ mod tests {
         assert_eq!(sentence_case("Already cased Text"), "Already cased Text");
         assert_eq!(sentence_case("今天讲傅里叶变换"), "今天讲傅里叶变换");
         assert_eq!(sentence_case("这个叫 FOURIER TRANSFORM"), "这个叫 Fourier transform");
+    }
+}
+
+/// PCM16 WAV opened for chunked reading, so a two-hour lecture is never held in
+/// memory as f32 (docs/SPEC.md 16.1). Mono or stereo (mixed down), any rate.
+pub struct WavPcmReader {
+    file: std::io::BufReader<std::fs::File>,
+    pub sample_rate: u32,
+    channels: usize,
+    remaining_bytes: u64,
+    total_frames: u64,
+}
+
+impl WavPcmReader {
+    pub fn open(path: &Path) -> Result<Self, String> {
+        use std::io::{Read, Seek, SeekFrom};
+        let mut file = std::io::BufReader::new(std::fs::File::open(path).map_err(|e| e.to_string())?);
+        let file_len = file.get_ref().metadata().map_err(|e| e.to_string())?.len();
+        let mut head = [0u8; 12];
+        file.read_exact(&mut head).map_err(|_| "not a WAV file".to_string())?;
+        if &head[0..4] != b"RIFF" || &head[8..12] != b"WAVE" {
+            return Err("not a WAV file".into());
+        }
+        let mut pos: u64 = 12;
+        let mut channels = 1u16;
+        let mut rate = 0u32;
+        let mut bits = 16u16;
+        let mut data: Option<(u64, u64)> = None;
+        while pos + 8 <= file_len {
+            file.seek(SeekFrom::Start(pos)).map_err(|e| e.to_string())?;
+            let mut hdr = [0u8; 8];
+            file.read_exact(&mut hdr).map_err(|e| e.to_string())?;
+            let size = u32::from_le_bytes([hdr[4], hdr[5], hdr[6], hdr[7]]) as u64;
+            let body_start = pos + 8;
+            let body_end = body_start.saturating_add(size).min(file_len);
+            if &hdr[0..4] == b"fmt " && body_end - body_start >= 16 {
+                let mut b = [0u8; 16];
+                file.read_exact(&mut b).map_err(|e| e.to_string())?;
+                channels = u16::from_le_bytes([b[2], b[3]]);
+                rate = u32::from_le_bytes([b[4], b[5], b[6], b[7]]);
+                bits = u16::from_le_bytes([b[14], b[15]]);
+            } else if &hdr[0..4] == b"data" {
+                data = Some((body_start, body_end - body_start));
+                break;
+            }
+            pos = body_end + (size & 1);
+        }
+        let (start, len) = data.ok_or("no data chunk")?;
+        if bits != 16 {
+            return Err(format!("unsupported bits per sample: {bits}"));
+        }
+        if rate == 0 {
+            return Err("missing fmt chunk".into());
+        }
+        let ch = channels.max(1) as usize;
+        file.seek(SeekFrom::Start(start)).map_err(|e| e.to_string())?;
+        Ok(Self { file, sample_rate: rate, channels: ch, remaining_bytes: len, total_frames: len / (2 * ch as u64) })
+    }
+
+    pub fn duration_ms(&self) -> u64 {
+        self.total_frames * 1000 / self.sample_rate.max(1) as u64
+    }
+
+    /// Next `max_frames` frames mixed to mono f32 in [-1, 1]; empty at the end.
+    pub fn next_chunk(&mut self, max_frames: usize) -> Result<Vec<f32>, String> {
+        use std::io::Read;
+        let frame_bytes = 2 * self.channels;
+        let want = (max_frames as u64 * frame_bytes as u64).min(self.remaining_bytes) as usize;
+        if want == 0 {
+            return Ok(Vec::new());
+        }
+        let mut buf = vec![0u8; want];
+        let mut filled = 0;
+        while filled < want {
+            let n = self.file.read(&mut buf[filled..]).map_err(|e| e.to_string())?;
+            if n == 0 {
+                break;
+            }
+            filled += n;
+        }
+        self.remaining_bytes -= filled as u64;
+        let frames = filled / frame_bytes;
+        let mut out = Vec::with_capacity(frames);
+        for f in 0..frames {
+            let mut acc = 0f32;
+            for c in 0..self.channels {
+                let i = (f * self.channels + c) * 2;
+                acc += i16::from_le_bytes([buf[i], buf[i + 1]]) as f32 / 32768.0;
+            }
+            out.push(acc / self.channels as f32);
+        }
+        Ok(out)
     }
 }
 

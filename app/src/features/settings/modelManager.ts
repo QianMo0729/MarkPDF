@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { ASR_MODELS, DEFAULT_MODEL_HOST, expectedFiles, modelFileUrl, modelForLang, type AsrModelDef } from "../../core/asrModels";
+import { ASR_MODELS, DEFAULT_MODEL_HOST, expectedFiles, modelFileUrl, modelsForLang, type AsrLang, type AsrModelDef } from "../../core/asrModels";
 import { getAsrModel, listAsrModels, setAsrModelStatus, upsertAsrModel } from "../../data/db/repos/asrModels";
 import type { AsrModelRow } from "../../data/db/schema";
 import { asrModelDir } from "../../data/files/file_store";
@@ -21,8 +21,12 @@ interface ModelManagerStore {
   download: (id: string) => Promise<void>;
   cancel: (id: string) => Promise<void>;
   remove: (id: string) => Promise<void>;
-  /** Directory of a ready model for the language setting, or null. */
-  readyDirFor: (lang: "auto" | "zh" | "en") => Promise<string | null>;
+  /**
+   * Directory of a ready model for the language setting, or null: the user's
+   * choice when it is downloaded, else the built-in default, else any ready
+   * model for that language (docs/SPEC.md 16.2).
+   */
+  readyDirFor: (lang: "auto" | "zh" | "en", selected?: Partial<Record<AsrLang, string>>) => Promise<string | null>;
 }
 
 let listening = false;
@@ -162,10 +166,11 @@ export const useModelManager = create<ModelManagerStore>((set, get) => ({
     });
   },
 
-  readyDirFor: async (lang) => {
-    const def: AsrModelDef = modelForLang(lang);
-    const row = get().rows.get(def.id) ?? (await getAsrModel(def.id));
-    if (row?.status === "ready" && row.dir_path) return row.dir_path;
+  readyDirFor: async (lang, selected) => {
+    for (const def of modelsForLang(lang, selected)) {
+      const row = get().rows.get(def.id) ?? (await getAsrModel(def.id));
+      if (row?.status === "ready" && row.dir_path) return row.dir_path;
+    }
     return null;
   },
 }));

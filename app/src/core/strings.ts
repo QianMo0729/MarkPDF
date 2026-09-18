@@ -229,6 +229,19 @@ export const S = {
     version: "版本",
   },
 
+  transcript: {
+    redo: "重新转写",
+    redoNow: "用本机模型转写这段录音",
+    redoHint: "用本机转写模型重新识别整段录音，替换现有的设备转写",
+    redoConfirm: "开始转写",
+    redoBody: "会用本机模型识别整段录音，按当时的翻页记录归到各页。",
+    redoBodyReplace: "会替换这节课现有的设备转写（包括已做的纠错和翻译），按当时的翻页记录重新归页。",
+    redoing: "正在重新转写…",
+    redone: (n: number) => `重新转写完成，共 ${n} 句`,
+    redoFailed: (m: string) => `重新转写失败：${m}`,
+    noModel: "没有可用的转写模型，先在设置里下载一个。",
+  },
+
   toast: {
     saved: "已保存",
     uploaded: "已上传录音",

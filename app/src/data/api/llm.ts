@@ -1,5 +1,6 @@
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { S } from "../../core/strings";
+import { codexChat } from "../../platform/codex";
 import { useSettings, type LlmApiFormat } from "../../stores/settings";
 
 export interface ChatMessage {
@@ -68,9 +69,32 @@ function config() {
   };
 }
 
+function provider() {
+  const { llmProvider, codexModel, codexEffort, codexPath } = useSettings.getState().settings;
+  return { kind: llmProvider ?? "custom", codexModel: (codexModel ?? "").trim(), codexEffort: (codexEffort ?? "").trim(), codexPath: (codexPath ?? "").trim() };
+}
+
+/** Codex needs no address or key: the app-server holds the ChatGPT login. */
 export function isLlmConfigured(): boolean {
+  if (provider().kind === "codex") return true;
   const c = config();
   return !!(c.baseUrl && c.apiKey && c.model);
+}
+
+/** Codex is a stateless one-turn call: system prompt as base instructions, the rest joined as the user message. */
+async function sendViaCodex(messages: ChatMessage[], opts: ChatOptions): Promise<string> {
+  if (opts.signal?.aborted) throw new DOMException("Aborted", "AbortError");
+  const p = provider();
+  const system = messages.filter((m) => m.role === "system").map((m) => m.content).join("\n\n");
+  const conversation = messages.filter((m) => m.role !== "system");
+  const user = conversation.length === 1
+    ? conversation[0].content
+    : conversation.map((m) => (m.role === "assistant" ? `[assistant]\n${m.content}` : `[user]\n${m.content}`)).join("\n\n");
+  const reply = await codexChat({ system: system || undefined, user, model: p.codexModel || undefined, effort: p.codexEffort || undefined, pathOverride: p.codexPath || undefined });
+  if (opts.signal?.aborted) throw new DOMException("Aborted", "AbortError");
+  const text = reply.text.trim();
+  if (!text) throw new Error("接口没有返回文本内容");
+  return text;
 }
 
 type JsonObject = Record<string, unknown>;
@@ -149,6 +173,7 @@ function unsupportedOpenAiEndpoint(error: unknown): boolean {
 
 export async function chat(messages: ChatMessage[], opts: ChatOptions = {}): Promise<string> {
   if (opts.signal?.aborted) throw new DOMException("Aborted", "AbortError");
+  if (provider().kind === "codex") return sendViaCodex(messages, opts);
   const c = config();
   if (!c.baseUrl || !c.apiKey || !c.model) throw new LlmNotConfiguredError();
   const protocol = getLlmProtocol(c.baseUrl, c.format);
