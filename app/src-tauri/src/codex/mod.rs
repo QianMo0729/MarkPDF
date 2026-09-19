@@ -113,6 +113,30 @@ fn npm_vendor_candidates(node_modules: &Path) -> Vec<PathBuf> {
     .collect()
 }
 
+/// Bin directories worth scanning besides `PATH`. An app started from Finder or
+/// the Dock only inherits the bare system `PATH`, so Homebrew and the usual
+/// per-user Node installs (nvm, Volta, a custom npm prefix) have to be named.
+#[cfg(not(windows))]
+fn well_known_bin_dirs(home: Option<&Path>) -> Vec<PathBuf> {
+    let mut out = vec![PathBuf::from("/opt/homebrew/bin"), PathBuf::from("/usr/local/bin")];
+    let Some(home) = home else { return out };
+    for dir in [".local/bin", ".npm-global/bin", ".volta/bin", ".bun/bin"] {
+        out.push(home.join(dir));
+    }
+    let nvm = std::env::var_os("NVM_DIR").map(PathBuf::from).unwrap_or_else(|| home.join(".nvm"));
+    if let Ok(entries) = std::fs::read_dir(nvm.join("versions").join("node")) {
+        let mut versions: Vec<PathBuf> = entries.filter_map(|e| e.ok()).map(|e| e.path().join("bin")).collect();
+        versions.sort();
+        out.extend(versions.into_iter().rev());
+    }
+    out
+}
+
+#[cfg(windows)]
+fn well_known_bin_dirs(_home: Option<&Path>) -> Vec<PathBuf> {
+    Vec::new()
+}
+
 /// Everywhere a Codex binary is usually found, most specific first.
 pub fn candidate_paths(override_path: Option<&str>) -> Vec<PathBuf> {
     let mut out: Vec<PathBuf> = Vec::new();
@@ -124,21 +148,21 @@ pub fn candidate_paths(override_path: Option<&str>) -> Vec<PathBuf> {
             out.push(p);
         }
     }
-    if let Some(home) = std::env::var_os("USERPROFILE").or_else(|| std::env::var_os("HOME")) {
-        let home = PathBuf::from(home);
+    let home = std::env::var_os("USERPROFILE").or_else(|| std::env::var_os("HOME")).map(PathBuf::from);
+    if let Some(home) = &home {
         out.push(home.join(".codex").join("bin").join(EXE));
     }
-    if let Some(path) = std::env::var_os("PATH") {
-        for dir in std::env::split_paths(&path) {
-            out.push(dir.join(EXE));
-            // npm global shim `codex.cmd` / `codex` next to a node_modules folder
-            if dir.join("codex.cmd").is_file() || dir.join("codex").is_file() {
-                out.extend(npm_vendor_candidates(&dir.join("node_modules")));
-                if let Some(parent) = dir.parent() {
-                    out.extend(npm_vendor_candidates(&parent.join("lib").join("node_modules")));
-                }
+    let path_dirs = std::env::var_os("PATH").map(|path| std::env::split_paths(&path).collect::<Vec<_>>()).unwrap_or_default();
+    for dir in path_dirs.into_iter().chain(well_known_bin_dirs(home.as_deref())) {
+        // npm global shim `codex.cmd` / `codex` next to a node_modules folder. Off
+        // Windows the shim is itself named `codex`, so the native binary goes first.
+        if dir.join("codex.cmd").is_file() || dir.join("codex").is_file() {
+            out.extend(npm_vendor_candidates(&dir.join("node_modules")));
+            if let Some(parent) = dir.parent() {
+                out.extend(npm_vendor_candidates(&parent.join("lib").join("node_modules")));
             }
         }
+        out.push(dir.join(EXE));
     }
     if let Some(appdata) = std::env::var_os("APPDATA") {
         out.extend(npm_vendor_candidates(&PathBuf::from(appdata).join("npm").join("node_modules")));
@@ -150,6 +174,7 @@ pub fn candidate_paths(override_path: Option<&str>) -> Vec<PathBuf> {
 }
 
 fn command(path: &Path) -> Command {
+    #[cfg_attr(not(windows), allow(unused_mut))]
     let mut c = Command::new(path);
     #[cfg(windows)]
     {

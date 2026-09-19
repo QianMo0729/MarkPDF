@@ -92,9 +92,11 @@ fn is_inside(path: &Path, dir: &Path) -> bool {
 
 /// Print a file with whatever handles the shell "print" verb for its type. On
 /// Windows that is the user's PDF reader; MarkPDF registers no print verb itself,
-/// so this never loops back into the app (audit PM-08).
+/// so this never loops back into the app (audit PM-08). macOS has no print verb:
+/// the file is opened in Preview by name (the default PDF handler could be MarkPDF)
+/// and the user prints from there. Returns "printing" or "opened_in_viewer".
 #[tauri::command]
-pub fn print_file(path: String) -> Result<(), String> {
+pub fn print_file(path: String) -> Result<&'static str, String> {
     #[cfg(windows)]
     {
         use windows_sys::Win32::UI::Shell::ShellExecuteW;
@@ -104,12 +106,25 @@ pub fn print_file(path: String) -> Result<(), String> {
         let file = wide(&path);
         let r = unsafe { ShellExecuteW(std::ptr::null_mut(), verb.as_ptr(), file.as_ptr(), std::ptr::null(), std::ptr::null(), SW_HIDE) } as usize;
         if r > 32 {
-            Ok(())
+            Ok("printing")
         } else {
             Err(format!("no_print_handler:{r}"))
         }
     }
-    #[cfg(not(windows))]
+    #[cfg(target_os = "macos")]
+    {
+        let status = std::process::Command::new("/usr/bin/open")
+            .args(["-a", "Preview"])
+            .arg(&path)
+            .status()
+            .map_err(|e| format!("no_print_handler:{e}"))?;
+        if status.success() {
+            Ok("opened_in_viewer")
+        } else {
+            Err(format!("no_print_handler:{status}"))
+        }
+    }
+    #[cfg(not(any(windows, target_os = "macos")))]
     {
         let _ = path;
         Err("no_print_handler:unsupported".into())

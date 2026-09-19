@@ -1,5 +1,6 @@
 import { S } from "../../../core/strings";
 import { Icon } from "../../../core/ui/Icon";
+import { shortcutLabel } from "../../../platform/os";
 import { useRecording } from "../controllers/recording";
 import "./transport.css";
 
@@ -30,7 +31,7 @@ export function RecordButton({ currentPage, compact = false, onStart }: Props) {
       onClick={onRecord}
       disabled={rec.starting}
       aria-label={label}
-      title={rec.status === "idle" ? `${label} (Ctrl+Shift+R)` : label}
+      title={rec.status === "idle" ? `${label} (${shortcutLabel("Ctrl+Shift+R")})` : label}
     >
       <Icon name={rec.status === "recording" ? "pause" : "mic"} size={compact ? 20 : 24} />
     </button>

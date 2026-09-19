@@ -6,7 +6,8 @@ MarkPDF uses the projects listed below. Their copyright notices and license term
 continue to apply to those components. This document does not assign a license to
 MarkPDF's original code or grant rights in third-party trademarks.
 
-The `licenses/` directory accompanies this document in the Windows installation.
+The `licenses/` directory accompanies this document in the Windows installation
+and inside the macOS app bundle (`MarkPDF.app/Contents/Resources`).
 It contains full license texts, upstream notices, a versioned dependency inventory,
 and the source URLs and hashes of separately retrieved license files.
 
@@ -80,6 +81,14 @@ license, exact version, source/archive link, and its available copyright and
 license files. This is a dependency inventory, not a claim that all of those
 packages' code is present in the executable.
 
+The macOS build resolves 37 further packages (Apple framework bindings such as the
+`objc2` family, `core-foundation`, `coreaudio-rs`, and their build dependencies).
+They are collected in the same form in
+[`rust-cargo-LICENSES-macos.txt`](licenses/rust-cargo-LICENSES-macos.txt); every
+other package of the macOS build appears in the Windows collection at the same
+version. The `objc2` crates publish no license file in their registry archives, so
+the repository's `LICENSE.md` at the published commit is retained there instead.
+
 MPL-2.0 Rust dependencies are unmodified. Their corresponding source archives are
 available through the exact version links in
 [`dependency-inventory.json`](licenses/dependency-inventory.json): `cssparser`
@@ -95,9 +104,16 @@ speech-recognition build. Its SHA-256 is
 [Upstream download](https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.8/sherpa-onnx-v1.13.8-win-x64-static-MT-Release-no-tts-lib.tar.bz2),
 [official build matrix](https://k2-fsa.github.io/sherpa/onnx/install/windows/generated/download/windows_x64.html).
 
+The macOS release uses the matching official ASR-only builds,
+`sherpa-onnx-v1.13.8-osx-arm64-static-no-tts-lib.tar.bz2` (SHA-256
+`3d7f9b8a496694af13d9802c33b8133231e397bdef302f543d19468765e83136`) and, for Intel,
+`sherpa-onnx-v1.13.8-osx-x64-static-no-tts-lib.tar.bz2` (SHA-256
+`8ffc3ede9f997fec547b5c99b8e2073b8e04fd48a5f65e1a6d5d314ad0106ad9`), from the same
+[upstream release](https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.13.8).
+
 MarkPDF vendors `sherpa-onnx-sys` 1.13.8 with a small build-script change selecting
-this archive, checking its digest, and excluding the TTS libraries `espeak-ng`,
-`piper_phonemize`, and `ucd` from the Windows x64 static link. The guard rejects a
+these archives, checking their digests, and excluding the TTS libraries `espeak-ng`,
+`piper_phonemize`, and `ucd` from the Windows x64 and macOS static links. The guard rejects a
 supplied SDK containing those libraries. The upstream binding code and Apache-2.0
 license are preserved; the exact change is described in
 [`MARKPDF-PATCH.md`](https://github.com/QianMo0729/MarkPDF/blob/v0.1.1/app/src-tauri/vendor/sherpa-onnx-sys/MARKPDF-PATCH.md).
@@ -106,7 +122,8 @@ The earlier development build using the full TTS SDK is not the release build.
 Speech-recognition model files are separate downloads from their respective model
 repositories. They are not embedded in the installer. Their repository/model-card
 terms apply to the downloaded files. Microsoft WebView2 is a separately installed
-runtime; its own installer supplies the applicable Microsoft terms.
+runtime; its own installer supplies the applicable Microsoft terms. On macOS the
+interface runs in the system's WebKit and is set in the system fonts.
 
 ## License file provenance
 

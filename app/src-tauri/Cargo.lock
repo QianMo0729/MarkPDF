@@ -2667,11 +2667,14 @@ dependencies = [
 
 [[package]]
 name = "markpdf"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "base64 0.22.1",
+ "block2",
  "cpal",
  "futures-util",
+ "objc2",
+ "objc2-foundation",
  "reqwest 0.12.28",
  "rubato",
  "serde",

@@ -30,6 +30,18 @@ const SHERPA_ONNX_STATIC_LIBS: &[&str] = &[
     "ssentencepiece_core",
 ];
 
+/// Members of `SHERPA_ONNX_STATIC_LIBS` that only exist in the full (TTS) SDK.
+const TTS_STATIC_LIBS: &[&str] = &["piper_phonemize", "espeak-ng", "ucd"];
+
+/// Published SHA-256 of the official v1.13.8 ASR-only static archives MarkPDF
+/// releases link. Updating the SDK requires reviewing both the archives and
+/// these pins; do not silently weaken them.
+const ASR_ONLY_ARCHIVE_DIGESTS: &[(&str, &str, &str)] = &[
+    ("windows", "x86_64", "f0aa074ddc39553b30208b53e84c12275d09702911c9faa8d34fa932428e4641"),
+    ("macos", "aarch64", "3d7f9b8a496694af13d9802c33b8133231e397bdef302f543d19468765e83136"),
+    ("macos", "x86_64", "8ffc3ede9f997fec547b5c99b8e2073b8e04fd48a5f65e1a6d5d314ad0106ad9"),
+];
+
 type DynError = Box<dyn Error>;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -60,12 +72,14 @@ fn try_main() -> Result<(), DynError> {
     let link_mode = resolve_link_mode(&target_os)?;
     let (lib_dir, archive_stem) = resolve_lib_dir(link_mode, &target_os, &target_arch)?;
 
-    // MarkPDF only uses ASR. Fail instead of silently accepting a full Windows
-    // SDK whose exported eSpeak/Piper objects survive normal linker stripping.
-    if target_os == "windows" && target_arch == "x86_64" && link_mode == LinkMode::Static {
-        for name in ["piper_phonemize.lib", "espeak-ng.lib", "ucd.lib"] {
-            if lib_dir.join(name).exists() {
-                return Err("MarkPDF requires the official Windows static no-tts-lib archive; remove the full-SDK SHERPA_ONNX_LIB_DIR override".into());
+    // MarkPDF only uses ASR. Fail instead of silently accepting a full SDK:
+    // on Windows its exported eSpeak/Piper objects survive normal linker
+    // stripping, and releases must not carry that code on any platform.
+    if asr_only_static(link_mode, &target_os, &target_arch) {
+        let (prefix, ext) = if target_os == "windows" { ("", "lib") } else { ("lib", "a") };
+        for lib in TTS_STATIC_LIBS {
+            if lib_dir.join(format!("{prefix}{lib}.{ext}")).exists() {
+                return Err("MarkPDF requires the official static no-tts-lib archive; remove the full-SDK SHERPA_ONNX_LIB_DIR override".into());
             }
         }
     }
@@ -221,8 +235,8 @@ fn download_prebuilt_libs(
         }
     }
 
-    if link_mode == LinkMode::Static && target_os == "windows" && target_arch == "x86_64" {
-        verify_windows_asr_archive(&archive_path)?;
+    if asr_only_static(link_mode, target_os, target_arch) {
+        verify_asr_only_archive(&archive_path, target_os, target_arch)?;
     }
 
     if extracted_dir.exists() {
@@ -392,10 +406,10 @@ fn archive_name(
             format!("sherpa-onnx-v{version}-linux-aarch64-static-lib.tar.bz2")
         }
         (LinkMode::Static, "macos", "x86_64") => {
-            format!("sherpa-onnx-v{version}-osx-x64-static-lib.tar.bz2")
+            format!("sherpa-onnx-v{version}-osx-x64-static-no-tts-lib.tar.bz2")
         }
         (LinkMode::Static, "macos", "aarch64") => {
-            format!("sherpa-onnx-v{version}-osx-arm64-static-lib.tar.bz2")
+            format!("sherpa-onnx-v{version}-osx-arm64-static-no-tts-lib.tar.bz2")
         }
         (LinkMode::Static, "windows", "x86_64") => {
             format!("sherpa-onnx-v{version}-win-x64-static-MT-Release-no-tts-lib.tar.bz2")
@@ -451,10 +465,10 @@ fn emit_shared_link_directives(target_os: &str) {
 }
 
 fn emit_static_link_directives(target_os: &str) {
+    let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
+    let asr_only = asr_only_static(LinkMode::Static, target_os, &target_arch);
     for lib in SHERPA_ONNX_STATIC_LIBS {
-        if target_os == "windows"
-            && env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("x86_64")
-            && matches!(*lib, "piper_phonemize" | "espeak-ng" | "ucd") {
+        if asr_only && TTS_STATIC_LIBS.contains(lib) {
             continue;
         }
         println!("cargo:rustc-link-lib=static={lib}");
@@ -475,18 +489,29 @@ fn emit_static_link_directives(target_os: &str) {
     }
 }
 
-/// Digest published on the official GitHub v1.13.8 release asset. Updating the
-/// SDK requires reviewing both the archive and this pin; do not silently weaken it.
-fn verify_windows_asr_archive(path: &Path) -> Result<(), DynError> {
+/// Targets MarkPDF releases for: static linking against the pinned no-tts archive.
+fn asr_only_static(link_mode: LinkMode, target_os: &str, target_arch: &str) -> bool {
+    link_mode == LinkMode::Static
+        && ASR_ONLY_ARCHIVE_DIGESTS
+            .iter()
+            .any(|(os, arch, _)| *os == target_os && *arch == target_arch)
+}
+
+fn verify_asr_only_archive(path: &Path, target_os: &str, target_arch: &str) -> Result<(), DynError> {
     if env!("CARGO_PKG_VERSION") != "1.13.8" {
-        return Err("Review and update the pinned Windows ASR-only archive digest".into());
+        return Err("Review and update the pinned ASR-only archive digests".into());
     }
+    let expected = ASR_ONLY_ARCHIVE_DIGESTS
+        .iter()
+        .find(|(os, arch, _)| *os == target_os && *arch == target_arch)
+        .map(|(_, _, digest)| *digest)
+        .ok_or("No pinned ASR-only archive digest for this target")?;
     let mut file = File::open(path)?;
     let mut hash = Sha256::new();
     io::copy(&mut file, &mut hash)?;
     let digest = format!("{:x}", hash.finalize());
-    if digest != "f0aa074ddc39553b30208b53e84c12275d09702911c9faa8d34fa932428e4641" {
-        return Err(format!("Windows ASR-only archive SHA-256 mismatch: {}", path.display()).into());
+    if digest != expected {
+        return Err(format!("ASR-only archive SHA-256 mismatch: {}", path.display()).into());
     }
     Ok(())
 }

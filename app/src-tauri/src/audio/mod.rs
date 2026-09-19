@@ -1,6 +1,8 @@
 //! Audio commands exposed to the frontend (docs/SPEC.md 7.1).
 
 pub mod capture;
+#[cfg(target_os = "macos")]
+mod mic_permission;
 pub mod resample;
 pub mod sample_clock;
 pub mod wav_writer;

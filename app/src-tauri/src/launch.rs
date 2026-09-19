@@ -1,7 +1,9 @@
 //! "Open with MarkPDF": PDF paths handed to the process on the command line
 //! (Explorer double-click / "Open with"; the installer registers the file
 //! association) and by a second instance started while we are already running
-//! (tauri-plugin-single-instance forwards its argv + cwd here).
+//! (tauri-plugin-single-instance forwards its argv + cwd here). macOS never
+//! uses argv for this: Finder sends the running (or just launched) app an
+//! open-documents event, which arrives as `RunEvent::Opened` (see [`on_opened`]).
 
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -50,12 +52,34 @@ pub fn collect_startup_args<R: Runtime>(app: &AppHandle<R>) {
 
 /// single-instance callback: focus the existing window and hand over the PDFs.
 pub fn on_second_instance<R: Runtime>(app: &AppHandle<R>, args: Vec<String>, cwd: String) {
+    focus_main_window(app);
+    deliver(app, pdf_paths(args, Path::new(&cwd)));
+}
+
+fn focus_main_window<R: Runtime>(app: &AppHandle<R>) {
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.unminimize();
         let _ = w.show();
         let _ = w.set_focus();
     }
-    let files = pdf_paths(args, Path::new(&cwd));
+}
+
+/// macOS: files dropped on the Dock icon or opened from Finder, both at launch
+/// and while running.
+#[cfg(target_os = "macos")]
+pub fn on_opened<R: Runtime>(app: &AppHandle<R>, urls: Vec<tauri::Url>) {
+    focus_main_window(app);
+    let args = urls
+        .iter()
+        .filter_map(|u| u.to_file_path().ok())
+        .map(|p| p.to_string_lossy().into_owned());
+    // pdf_paths skips argv[0]
+    let files = pdf_paths(std::iter::once(String::new()).chain(args), Path::new("/"));
+    deliver(app, files);
+}
+
+/// Queue the files until the frontend is ready, afterwards emit them right away.
+fn deliver<R: Runtime>(app: &AppHandle<R>, files: Vec<String>) {
     if files.is_empty() {
         return;
     }

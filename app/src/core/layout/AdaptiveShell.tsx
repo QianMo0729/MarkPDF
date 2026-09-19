@@ -2,6 +2,7 @@ import { Link, Outlet, useLocation, useSearchParams } from "react-router";
 import { S } from "../strings";
 import { Icon } from "../ui/Icon";
 import { RecordingBanner } from "../../features/session/widgets/RecordingBanner";
+import { isMac } from "../../platform/os";
 import { useLayoutClass } from "./breakpoints";
 import "./shell.css";
 
@@ -50,6 +51,7 @@ export function AdaptiveShell() {
 
   return (
     <div className={`shell ${rail ? "shell-rail" : "shell-bar"}`}>
+      {isMac && <div className="window-drag-strip" data-tauri-drag-region />}
       {rail && nav}
       <main className="shell-content">
         <RecordingBanner />

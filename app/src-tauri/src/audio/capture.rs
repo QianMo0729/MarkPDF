@@ -91,6 +91,9 @@ pub struct StartOptions {
 
 impl Recorder {
     pub fn start(app: AppHandle, opts: StartOptions) -> Result<Self, String> {
+        #[cfg(target_os = "macos")]
+        super::mic_permission::ensure_access()?;
+
         let writer = if opts.append && opts.wav_path.exists() {
             WavWriter::append(&opts.wav_path)
         } else {
@@ -304,23 +307,19 @@ fn build_stream(app: &AppHandle, chunk_tx: &SyncSender<Chunk>, state: &Arc<Atomi
 }
 
 fn stream_thread(app: AppHandle, chunk_tx: SyncSender<Chunk>, cmd_rx: Receiver<Cmd>, ready_tx: SyncSender<Result<u32, String>>, state: Arc<AtomicU8>, muted: Arc<AtomicBool>) {
-    #[cfg(windows)]
-    keep_awake(true);
+    // Held for the whole recording; dropped on every exit path of this thread.
+    let _awake = KeepAwake::new();
 
     let broken = Arc::new(AtomicBool::new(false));
     let (first, mut rate) = match build_stream(&app, &chunk_tx, &state, &muted, &broken) {
         Ok(v) => v,
         Err(e) => {
             let _ = ready_tx.send(Err(e));
-            #[cfg(windows)]
-            keep_awake(false);
             return;
         }
     };
     if let Err(e) = first.play() {
         let _ = ready_tx.send(Err(format!("mic_permission_denied: {e}")));
-        #[cfg(windows)]
-        keep_awake(false);
         return;
     }
     let _ = ready_tx.send(Ok(rate));
@@ -372,8 +371,6 @@ fn stream_thread(app: AppHandle, chunk_tx: SyncSender<Chunk>, cmd_rx: Receiver<C
             }
         }
     }
-    #[cfg(windows)]
-    keep_awake(false);
 }
 
 fn downmix(data: &[f32], channels: usize) -> Vec<f32> {
@@ -481,14 +478,45 @@ fn pump(app: &AppHandle, rx: Receiver<Chunk>, writer: &mut WavWriter, clock: &Ar
     Ok(())
 }
 
-#[cfg(windows)]
-fn keep_awake(on: bool) {
-    use windows_sys::Win32::System::Power::{SetThreadExecutionState, ES_CONTINUOUS, ES_SYSTEM_REQUIRED};
-    unsafe {
-        if on {
+/// Keeps the machine from idle-sleeping while a lecture is being recorded.
+struct KeepAwake {
+    /// `caffeinate -i`, tied to our pid so it can never outlive the app.
+    #[cfg(target_os = "macos")]
+    caffeinate: Option<std::process::Child>,
+}
+
+impl KeepAwake {
+    fn new() -> Self {
+        #[cfg(windows)]
+        unsafe {
+            use windows_sys::Win32::System::Power::{SetThreadExecutionState, ES_CONTINUOUS, ES_SYSTEM_REQUIRED};
             SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED);
-        } else {
+        }
+        Self {
+            #[cfg(target_os = "macos")]
+            caffeinate: std::process::Command::new("/usr/bin/caffeinate")
+                .args(["-i", "-w", &std::process::id().to_string()])
+                .stdin(std::process::Stdio::null())
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .spawn()
+                .ok(),
+        }
+    }
+}
+
+impl Drop for KeepAwake {
+    fn drop(&mut self) {
+        // Same thread as `new`: the Windows execution state is per thread.
+        #[cfg(windows)]
+        unsafe {
+            use windows_sys::Win32::System::Power::{SetThreadExecutionState, ES_CONTINUOUS};
             SetThreadExecutionState(ES_CONTINUOUS);
+        }
+        #[cfg(target_os = "macos")]
+        if let Some(mut child) = self.caffeinate.take() {
+            let _ = child.kill();
+            let _ = child.wait();
         }
     }
 }

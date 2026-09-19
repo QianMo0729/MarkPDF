@@ -17,6 +17,7 @@ import {
   type CodexModel,
   type CodexStatus,
 } from "../../platform/codex";
+import { isMac } from "../../platform/os";
 import { useSettings } from "../../stores/settings";
 
 /**
@@ -143,7 +144,7 @@ export function CodexSettings() {
       </div>
       {probe.state === "missing" && (
         <p className="caption">
-          安装 Codex CLI 后再来：在终端运行 <code>npm install -g @openai/codex</code>，或把已安装的 codex.exe 路径填在下方。安装说明见 developers.openai.com/codex/cli。
+          安装 Codex CLI 后再来：在终端运行 <code>npm install -g @openai/codex</code>，或把已安装的 {isMac ? "codex" : "codex.exe"} 路径填在下方。安装说明见 developers.openai.com/codex/cli。
         </p>
       )}
       <div className="settings-row">

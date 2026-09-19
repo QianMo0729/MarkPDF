@@ -1,3 +1,4 @@
+import { emit } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
 import { createHashRouter, RouterProvider } from "react-router";
 import { AdaptiveShell } from "./core/layout/AdaptiveShell";
@@ -20,6 +21,8 @@ import { SettingsScreen } from "./features/settings/SettingsScreen";
 import { useModelManager } from "./features/settings/modelManager";
 import { useSettings } from "./stores/settings";
 import { installDevHooks } from "./devtools";
+import { pickPdf } from "./features/deck_import/deckImport";
+import { onMenuCommand, replayShortcut } from "./platform/menu";
 
 const router = createHashRouter([
   {
@@ -57,6 +60,18 @@ export function App() {
     })().catch((e) => setError(String(e)));
     return dispose;
   }, []);
+
+  // macOS menu bar (src-tauri/src/menu.rs). No such events exist on other platforms.
+  useEffect(() => {
+    if (!ready) return;
+    const unlisten = onMenuCommand((command) => {
+      if (command === "settings") void router.navigate("/settings");
+      // Same path as a PDF opened from Finder: OpenFileFlow asks for the course.
+      else if (command === "open") void pickPdf().then((path) => void (path && emit("open-files", [path])));
+      else replayShortcut(command);
+    });
+    return () => void unlisten.then((fn) => fn());
+  }, [ready]);
 
   if (error) {
     return (

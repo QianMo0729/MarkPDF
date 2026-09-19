@@ -11,12 +11,13 @@ import { getLlmProtocol, LLM_FORMAT_LABELS, resolveLlmEndpoint, testConnection }
 import { LocalTranslationSettings } from "../../data/translation/LocalTranslationSettings";
 import { clearThumbnailCache } from "../../domain/deletion";
 import { useSettings, type LlmApiFormat, type Settings } from "../../stores/settings";
+import { isMac } from "../../platform/os";
 import { CodexSettings } from "./CodexSettings";
 import "./settings.css";
 
 type GroupId = "account" | "transcription" | "ai" | "annotations" | "reading" | "storage" | "sync" | "appearance" | "shortcuts" | "about";
 
-const GROUPS: { id: GroupId; label: string; icon: string }[] = [
+const ALL_GROUPS: { id: GroupId; label: string; icon: string }[] = [
   { id: "account", label: S.settings.account, icon: "person" },
   { id: "transcription", label: S.settings.transcription, icon: "subtitles" },
   { id: "ai", label: "翻译与 AI", icon: "translate" },
@@ -28,6 +29,8 @@ const GROUPS: { id: GroupId; label: string; icon: string }[] = [
   { id: "shortcuts", label: S.settings.shortcuts, icon: "keyboard" },
   { id: "about", label: S.settings.about, icon: "info" },
 ];
+// macOS follows the system appearance; an app-specific switch is discouraged there (HIG, Dark Mode).
+const GROUPS = isMac ? ALL_GROUPS.filter((g) => g.id !== "appearance") : ALL_GROUPS;
 
 
 export function SettingsScreen() {
@@ -413,7 +416,7 @@ function ShortcutsGroup() {
       <tbody>
         {SHORTCUTS.map(([k, v]) => (
           <tr key={k}>
-            <td className="body-small mono">{k}</td>
+            <td className="body-small mono">{isMac ? k.replace(/Ctrl \+ Shift \+ /g, "⇧⌘").replace(/Ctrl \+ /g, "⌘") : k}</td>
             <td className="body-small text2">{v}</td>
           </tr>
         ))}

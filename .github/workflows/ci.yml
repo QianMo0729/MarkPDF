@@ -1,4 +1,4 @@
-name: Windows checks
+name: Checks
 
 on:
   push:
@@ -14,6 +14,7 @@ concurrency:
 
 jobs:
   checks:
+    name: Windows checks
     runs-on: windows-2022
     timeout-minutes: 60
     env:
@@ -55,5 +56,48 @@ jobs:
         run: npm.cmd test
       - name: Typecheck and production frontend build
         run: npm.cmd run build
+      - name: Rust tests with locked dependencies
+        run: cargo test --locked --lib --manifest-path src-tauri/Cargo.toml
+
+  checks-macos:
+    name: macOS checks
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      RUSTUP_TOOLCHAIN: '1.98.1'
+      CARGO_TARGET_DIR: ${{ github.workspace }}/app/src-tauri/target-release
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24.18.0'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.98.1 --profile minimal
+      - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            app/src-tauri/target-release
+          key: macos-arm64-asr-only-rust-1.98.1-${{ hashFiles('app/src-tauri/Cargo.lock', 'app/src-tauri/vendor/sherpa-onnx-sys/build.rs') }}
+      - name: Prepare portable native-library configuration
+        run: ./scripts/build-macos.sh --prepare-only
+      - name: Install locked frontend dependencies
+        run: npm ci
+      - name: Validate versions and pinned translation engine
+        run: |
+          node scripts/check-release-version.mjs
+          node scripts/download-translation-assets.mjs
+      - name: Frontend tests
+        run: npm test
+      - name: Typecheck and production frontend build
+        run: npm run build
       - name: Rust tests with locked dependencies
         run: cargo test --locked --lib --manifest-path src-tauri/Cargo.toml

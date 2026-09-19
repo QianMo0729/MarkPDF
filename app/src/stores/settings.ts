@@ -41,6 +41,8 @@ export interface Settings {
   textBoxFillColor: string;
   deleteWavAfterUpload: boolean;
   railCollapsed: boolean;
+  /** The "recordings of this PDF" bar under the session title bar. */
+  recordingsBarCollapsed: boolean;
   railWidth: number;
   playbackSpeed: number;
   asrEnabled: boolean;
@@ -76,6 +78,7 @@ export const DEFAULT_SETTINGS: Settings = {
   textBoxFillColor: "",
   deleteWavAfterUpload: true,
   railCollapsed: false,
+  recordingsBarCollapsed: false,
   railWidth: 96,
   playbackSpeed: 1,
   asrEnabled: true,
@@ -112,6 +115,7 @@ const KEYS: Record<keyof Settings, string> = {
   textBoxFillColor: "text_box_fill_color",
   deleteWavAfterUpload: "delete_wav_after_upload",
   railCollapsed: "rail_collapsed",
+  recordingsBarCollapsed: "recordings_bar_collapsed",
   railWidth: "rail_width",
   playbackSpeed: "playback_speed",
   asrEnabled: "asr_enabled",

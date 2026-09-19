@@ -3,6 +3,7 @@ mod audio;
 mod codex;
 mod commands;
 mod launch;
+mod menu;
 
 use tauri::Manager;
 use tauri_plugin_sql::{Migration, MigrationKind};
@@ -70,6 +71,8 @@ pub fn run() {
         )
         .setup(|app| {
             launch::collect_startup_args(app.handle());
+            #[cfg(target_os = "macos")]
+            menu::install(app.handle())?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -79,6 +82,7 @@ pub fn run() {
             commands::file_size,
             commands::write_bytes_b64,
             commands::print_file,
+            menu::menu_sync,
             audio::audio_start,
             audio::audio_pause,
             audio::audio_resume,
@@ -116,6 +120,12 @@ pub fn run() {
                 }
             }
         })
-        .run(tauri::generate_context!())
-        .expect("error while running MarkPDF");
+        .build(tauri::generate_context!())
+        .expect("error while running MarkPDF")
+        .run(|_app, _event| {
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Opened { urls } = _event {
+                launch::on_opened(_app, urls);
+            }
+        });
 }

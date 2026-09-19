@@ -1,0 +1,1145 @@
+/* macOS look: Apple's Human Interface Guidelines as the floor
+   (https://developer.apple.com/design/human-interface-guidelines), the Liquid Glass
+   generation of macOS 26 / 27 as the goal. Everything is scoped to
+   :root[data-platform="macos"] (stamped by platform/os.ts), so the Windows build
+   keeps the palette of tokens.css unchanged.
+
+   - Two layers (HIG, Materials). The functional layer — sidebar, toolbars, transport,
+     menus, popovers, dialogs — is glass floating over the window: translucent fill,
+     backdrop blur + saturation, a specular edge, a soft shadow. The content layer —
+     course tiles, the slide, notes, settings forms — stays on standard opaque
+     materials; no glass there.
+   - Shape: the window corner is ~26 pt, panels sit 8 pt inside it, so they take a
+     concentric 18 pt radius. Buttons, search fields, segmented controls and toolbars
+     are capsules.
+   - Typography: the system font (San Francisco / PingFang SC) at the macOS text
+     styles: 13 pt body, 10 pt minimum.
+   - Color: the documented values of the dynamic system colors, light and dark.
+     --accent is the accent color people chose in System Settings (core/theme/macos.ts
+     fills it in; system blue until then). The window canvas carries a faint wash of
+     it so the glass has color to pick up, the way a sidebar picks up the wallpaper.
+   - Dark Mode follows the system: no app-specific appearance setting.
+   - Accessibility: Reduce Transparency and Increase Contrast turn the glass into
+     opaque panels with real borders (end of this file).
+   - Windows: the toolbar is integrated with the title bar and the sidebar runs
+     the full height of the window (titleBarStyle Overlay in tauri.macos.conf.json). */
+
+:root[data-platform="macos"] {
+  /* windowBackground / controlBackground / separator / label colors */
+  --bg: #f3f3f5;
+  --surface: #ffffff;
+  --surface2: #ececef;
+  --border: rgba(0, 0, 0, 0.1);
+  --text: rgba(0, 0, 0, 0.85);
+  --text2: rgba(0, 0, 0, 0.5);
+  /* Tertiary label is 26 % in AppKit; captions here carry information, so stay readable. */
+  --text3: rgba(0, 0, 0, 0.4);
+  --accent: #007aff;
+  --highlight: #ffcc00;
+  --record: #ff3b30;
+  --mark-important: #ffcc00;
+  --mark-confused: #ff9500;
+  --mark-homework: #28cd41;
+  --slide-bg: #e6e6ea;
+  --scrubber-alt: #dedee3;
+
+  /* system fills: hover, selection, control tracks — they work on glass and on white */
+  --fill-hover: rgba(120, 120, 128, 0.1);
+  --fill-selected: rgba(120, 120, 128, 0.18);
+  --fill-track: rgba(120, 120, 128, 0.14);
+  --control-bg: rgba(255, 255, 255, 0.86);
+  --control-edge: 0 0 0 0.5px rgba(0, 0, 0, 0.12), 0 1px 1.5px rgba(0, 0, 0, 0.07);
+
+  /* Liquid Glass, regular variant */
+  --glass-bg: rgba(255, 255, 255, 0.58);
+  --glass-bg-thick: rgba(255, 255, 255, 0.8);
+  --glass-filter: blur(30px) saturate(190%);
+  --glass-edge: inset 0 0 0 0.5px rgba(255, 255, 255, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 0 0 0.5px rgba(0, 0, 0, 0.09);
+  --glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 10px 30px rgba(0, 0, 0, 0.1);
+  --glass-shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.08), 0 22px 60px rgba(0, 0, 0, 0.22);
+  /* content layer */
+  --card-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.07), 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+  --card-shadow-hover: 0 0 0 0.5px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.05), 0 16px 40px rgba(0, 0, 0, 0.12);
+  --wash-1: 15%;
+  --wash-2: 9%;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  --radius-control: 9px;
+  --radius-item: 10px;
+  --radius-card: 16px;
+  --radius-panel: 18px;
+  /* Distance between the window edge and the floating panels, and between panels. */
+  --inset: 8px;
+  /* Height of the band shared by the traffic lights and the toolbar. The lights sit
+     concentric with the sidebar panel's corner (trafficLightPosition in
+     tauri.macos.conf.json puts their centers 28 pt down), so the band is 56 pt. */
+  --titlebar-height: 56px;
+  --ease-spring: cubic-bezier(0.3, 1.35, 0.5, 1);
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-platform="macos"] {
+    --bg: #17171a;
+    --surface: #242428;
+    --surface2: #333338;
+    --border: rgba(255, 255, 255, 0.1);
+    --text: rgba(255, 255, 255, 0.88);
+    --text2: rgba(255, 255, 255, 0.55);
+    --text3: rgba(255, 255, 255, 0.4);
+    --accent: #0a84ff;
+    --accent-soft: color-mix(in srgb, var(--accent) 24%, transparent);
+    --highlight: #ffd60a;
+    --record: #ff453a;
+    --mark-important: #ffd60a;
+    --mark-confused: #ff9f0a;
+    --mark-homework: #32d74b;
+    --slide-bg: #0f0f11;
+    --scrubber-alt: #3c3c42;
+
+    --fill-hover: rgba(140, 140, 150, 0.16);
+    --fill-selected: rgba(140, 140, 150, 0.28);
+    --fill-track: rgba(140, 140, 150, 0.22);
+    --control-bg: rgba(255, 255, 255, 0.09);
+    --control-edge: inset 0 0.5px 0 rgba(255, 255, 255, 0.16), 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
+
+    --glass-bg: rgba(58, 58, 66, 0.5);
+    --glass-bg-thick: rgba(46, 46, 52, 0.8);
+    --glass-filter: blur(30px) saturate(170%);
+    --glass-edge: inset 0 0 0 0.5px rgba(255, 255, 255, 0.13), inset 0 1px 0 rgba(255, 255, 255, 0.2),
+      0 0 0 0.5px rgba(0, 0, 0, 0.55);
+    --glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.35);
+    --glass-shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.35), 0 22px 60px rgba(0, 0, 0, 0.55);
+    --card-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.1), 0 0 0 0.5px rgba(255, 255, 255, 0.07), 0 8px 24px rgba(0, 0, 0, 0.3);
+    --card-shadow-hover: inset 0 0.5px 0 rgba(255, 255, 255, 0.14), 0 0 0 0.5px rgba(255, 255, 255, 0.12),
+      0 16px 40px rgba(0, 0, 0, 0.45);
+    --wash-1: 22%;
+    --wash-2: 12%;
+  }
+}
+
+/* ---------- window canvas ---------- */
+/* A faint wash of the accent (and a cooler second light) under everything: it is what
+   the glass panels refract. It fades out before the content area, which stays neutral. */
+:root[data-platform="macos"] body {
+  font-size: 13px;
+  line-height: 18px;
+  background:
+    radial-gradient(70rem 46rem at -12% -18%, color-mix(in srgb, var(--accent) var(--wash-1), transparent), transparent 62%),
+    radial-gradient(52rem 40rem at -8% 112%, color-mix(in srgb, #bf5af2 var(--wash-2), transparent), transparent 60%),
+    radial-gradient(60rem 36rem at 112% -20%, color-mix(in srgb, #5ac8fa var(--wash-2), transparent), transparent 60%),
+    var(--bg);
+}
+
+/* ---------- typography: macOS built-in text styles ---------- */
+/* PingFang SC sets taller than SF at the same size, so multi-line styles get the
+   leading AppKit gives CJK text rather than the Latin 16 pt. */
+:root[data-platform="macos"] .display {
+  /* Large Title */
+  font-size: 26px;
+  line-height: 32px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+:root[data-platform="macos"] .title {
+  /* Title 1 */
+  font-size: 22px;
+  line-height: 26px;
+  font-weight: 700;
+}
+:root[data-platform="macos"] .subtitle {
+  /* Title 3, emphasized */
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+}
+:root[data-platform="macos"] .body {
+  font-size: 13px;
+  line-height: 18px;
+}
+:root[data-platform="macos"] .body-small {
+  /* Callout */
+  font-size: 12px;
+  line-height: 16px;
+}
+:root[data-platform="macos"] .caption {
+  /* Subheadline */
+  font-size: 11px;
+  line-height: 14px;
+}
+
+/* ---------- Liquid Glass: the functional layer ---------- */
+:root[data-platform="macos"] :is(.nav-rail, .nav-bar, .rail, .slide-toolbar, .session-bottom, .page-pill, .selection-toolbar, .scrubber-tip, .toast) {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
+  border: none;
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+}
+/* Panels that carry a lot of text get the thicker glass, and sit higher. */
+:root[data-platform="macos"] :is(.menu, .dialog) {
+  background: var(--glass-bg-thick);
+  -webkit-backdrop-filter: blur(40px) saturate(190%);
+  backdrop-filter: blur(40px) saturate(190%);
+  border: none;
+  box-shadow: var(--glass-edge), var(--glass-shadow-raised);
+}
+
+/* ---------- controls ---------- */
+/* The arrow stays an arrow over controls; only links get the pointing hand. */
+:root[data-platform="macos"] :is(button, summary, select, label, .nav-item, [role="button"], [role="tab"], [role="menuitem"]) {
+  cursor: default;
+}
+:root[data-platform="macos"] :focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  outline-offset: 1px;
+}
+:root[data-platform="macos"] .btn {
+  height: 30px;
+  padding: 0 14px;
+  border: none;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 500;
+  transition: background var(--dur-hover) ease-out, box-shadow var(--dur-hover) ease-out, transform 160ms var(--ease-spring);
+}
+:root[data-platform="macos"] .btn:not(:disabled):active {
+  transform: scale(0.97);
+}
+:root[data-platform="macos"] .btn-outlined {
+  background: var(--control-bg);
+  box-shadow: var(--control-edge);
+}
+:root[data-platform="macos"] .btn-outlined:not(:disabled):hover {
+  background: var(--control-bg);
+  box-shadow: var(--control-edge), inset 0 0 0 100px var(--fill-hover);
+}
+:root[data-platform="macos"] .btn-filled {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, #fff), var(--accent));
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.4), 0 0 0 0.5px color-mix(in srgb, var(--accent) 80%, #000),
+    0 1px 2px color-mix(in srgb, var(--accent) 45%, transparent), 0 6px 16px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+:root[data-platform="macos"] .btn-filled:not(:disabled):hover {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 80%, #fff), color-mix(in srgb, var(--accent) 94%, #fff));
+}
+:root[data-platform="macos"] .btn-record {
+  color: var(--record);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--record) 55%, transparent);
+}
+:root[data-platform="macos"] .btn-record.btn-filled {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--record) 88%, #fff), var(--record));
+  color: #fff;
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.4), 0 1px 2px color-mix(in srgb, var(--record) 45%, transparent),
+    0 6px 16px color-mix(in srgb, var(--record) 24%, transparent);
+}
+:root[data-platform="macos"] .btn-text {
+  padding: 0 10px;
+  font-weight: 400;
+}
+:root[data-platform="macos"] .toolbar-small {
+  height: 26px;
+  padding: 0 10px;
+}
+:root[data-platform="macos"] .icon-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-pill);
+  transition: background var(--dur-hover) ease-out, color var(--dur-hover) ease-out, transform 160ms var(--ease-spring);
+}
+:root[data-platform="macos"] .icon-btn:not(:disabled):hover {
+  background: var(--fill-hover);
+}
+:root[data-platform="macos"] .icon-btn:not(:disabled):active {
+  transform: scale(0.92);
+}
+:root[data-platform="macos"] .icon-btn.active {
+  background: var(--accent-soft);
+}
+:root[data-platform="macos"] .input {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 13px;
+  border: none;
+  border-radius: var(--radius-control);
+  background: var(--control-bg);
+  box-shadow: var(--control-edge);
+  transition: box-shadow var(--dur-hover) ease-out;
+}
+/* WebKit's native pop-up button ignores border-radius: draw the capsule and its
+   chevrons here. */
+:root[data-platform="macos"] select.input {
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: var(--radius-pill);
+  padding: 0 30px 0 12px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='14' viewBox='0 0 10 14' fill='none' stroke='%238e8e93' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 5l3-3 3 3M2 9l3 3 3-3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 11px center;
+  background-size: 10px 14px;
+}
+:root[data-platform="macos"] .input:focus {
+  box-shadow: 0 0 0 0.5px var(--accent), 0 0 0 3.5px color-mix(in srgb, var(--accent) 32%, transparent);
+}
+:root[data-platform="macos"] .chip {
+  height: 22px;
+  padding: 0 9px;
+  font-size: 11px;
+  line-height: 14px;
+  border: none;
+  background: var(--fill-track);
+}
+:root[data-platform="macos"] .chip.selected {
+  background: var(--accent-soft);
+}
+:root[data-platform="macos"] .segmented {
+  background: var(--fill-track);
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 2px;
+  gap: 2px;
+  overflow: visible;
+}
+:root[data-platform="macos"] .segmented > button {
+  height: 24px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  color: var(--text);
+  transition: background var(--dur-hover) ease-out;
+}
+:root[data-platform="macos"] .segmented > button + button {
+  border-left: none;
+}
+:root[data-platform="macos"] .segmented > button:not(.selected):hover {
+  background: var(--fill-hover);
+}
+:root[data-platform="macos"] .segmented > button.selected {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.16);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-platform="macos"] .segmented > button.selected {
+    background: #6a6a72;
+    box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.2), 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+}
+/* The switch of macOS 26: a wide capsule with a capsule knob. */
+:root[data-platform="macos"] .toggle {
+  width: 42px;
+  height: 24px;
+  background: rgba(120, 120, 128, 0.32);
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  transition: background 200ms ease-out;
+}
+:root[data-platform="macos"] .toggle.on {
+  background: var(--accent);
+}
+:root[data-platform="macos"] .toggle-knob {
+  top: 2px;
+  left: 2px;
+  width: 26px;
+  height: 20px;
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.06), 0 2px 5px rgba(0, 0, 0, 0.22);
+  transition: left 260ms var(--ease-spring);
+}
+:root[data-platform="macos"] .toggle.on .toggle-knob {
+  left: 14px;
+}
+:root[data-platform="macos"] .color-swatch {
+  border-radius: var(--radius-pill);
+  /* a hairline keeps near-black and near-white swatches visible on any surface */
+  box-shadow: inset 0 0 0 0.5px color-mix(in srgb, var(--text) 30%, transparent);
+}
+:root[data-platform="macos"] .divider {
+  background: var(--border);
+}
+
+/* ---------- menus, dialogs, toasts ---------- */
+:root[data-platform="macos"] .menu {
+  padding: 6px;
+  border-radius: 14px;
+  min-width: 180px;
+}
+:root[data-platform="macos"] .menu > button {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+:root[data-platform="macos"] .menu > button:hover,
+:root[data-platform="macos"] .menu > button.danger:hover {
+  background: var(--accent);
+  color: #fff;
+}
+:root[data-platform="macos"] .menu > button:hover .material-symbols-rounded {
+  color: #fff;
+}
+:root[data-platform="macos"] .dialog {
+  border-radius: 24px;
+  padding: 24px;
+  gap: 14px;
+  animation: mac-dialog-in 260ms var(--ease-spring);
+}
+:root[data-platform="macos"] .dialog-actions {
+  margin-top: 8px;
+}
+:root[data-platform="macos"] .dialog-actions .btn {
+  min-width: 76px;
+}
+:root[data-platform="macos"] .dialog-backdrop {
+  background: rgba(0, 0, 0, 0.22);
+  animation: mac-fade-in 160ms ease-out;
+}
+@keyframes mac-dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+@keyframes mac-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+:root[data-platform="macos"] .toast {
+  padding: 9px 18px;
+  animation: mac-dialog-in 260ms var(--ease-spring);
+}
+:root[data-platform="macos"] .empty > .material-symbols-rounded {
+  width: 84px;
+  height: 84px;
+  margin-bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 24px;
+  font-size: 40px !important;
+  color: var(--accent);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 10%, var(--surface)), color-mix(in srgb, var(--accent) 22%, var(--surface)));
+  box-shadow: var(--card-shadow);
+}
+:root[data-platform="macos"] .spinner {
+  border-color: var(--fill-track);
+  border-top-color: var(--accent);
+}
+
+/* ---------- sidebar (the navigation rail of the wide layout) ---------- */
+/* A glass panel floating inside the window, not a column welded to its edge. */
+:root[data-platform="macos"] .nav-rail {
+  width: 216px;
+  flex: 0 0 216px;
+  margin: var(--inset) 0 var(--inset) var(--inset);
+  align-items: stretch;
+  gap: 2px;
+  padding: calc(var(--titlebar-height) - var(--inset)) 10px 10px;
+  border-radius: var(--radius-panel);
+}
+:root[data-platform="macos"] .nav-rail .nav-item {
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 9px;
+  width: auto;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: var(--radius-item);
+  color: var(--text);
+}
+/* Sidebar glyphs take the accent color; the label stays a label (HIG, Sidebars). */
+:root[data-platform="macos"] .nav-rail .nav-item .material-symbols-rounded {
+  font-size: 19px !important;
+  color: var(--accent);
+}
+:root[data-platform="macos"] .nav-rail .nav-item .caption {
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 500;
+}
+:root[data-platform="macos"] .nav-rail .nav-item:hover {
+  background: var(--fill-hover);
+}
+:root[data-platform="macos"] .nav-rail .nav-item.active {
+  background: var(--fill-selected);
+  color: var(--text);
+}
+
+/* Narrow windows: the tab bar is a glass capsule floating over the content, which
+   scrolls beneath it. */
+:root[data-platform="macos"] .nav-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  z-index: 40;
+  width: min(340px, calc(100% - 32px));
+  height: 58px;
+  flex: none;
+  padding: 4px;
+  gap: 2px;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--glass-edge), var(--glass-shadow-raised);
+}
+:root[data-platform="macos"] .nav-bar .nav-item {
+  height: auto;
+  border-radius: var(--radius-pill);
+}
+:root[data-platform="macos"] .nav-bar .nav-item:hover {
+  background: var(--fill-hover);
+}
+:root[data-platform="macos"] .nav-bar .nav-item.active {
+  background: var(--fill-selected);
+}
+:root[data-platform="macos"] .shell-bar .shell-content {
+  padding-bottom: 88px;
+}
+
+/* ---------- window frame ---------- */
+/* Title-bar strip above the scrolling content: drags the window, like a native frame. */
+.window-drag-strip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  z-index: 50;
+}
+:root[data-platform="macos"] .shell-content {
+  padding-top: 20px;
+}
+/* Scroll edge effect: content softens as it slides under the title-bar band. */
+:root[data-platform="macos"] .shell-content::before {
+  content: "";
+  display: block;
+  position: sticky;
+  top: -20px;
+  z-index: 30;
+  height: 36px;
+  margin: -20px 0 -16px;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  -webkit-mask-image: linear-gradient(to bottom, #000 35%, transparent);
+  mask-image: linear-gradient(to bottom, #000 35%, transparent);
+}
+:root[data-platform="macos"] .recording-banner {
+  margin: 0 20px 8px;
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--record) 30%, transparent);
+}
+
+/* ---------- library and course: the content layer ---------- */
+:root[data-platform="macos"] .library,
+:root[data-platform="macos"] .course {
+  padding: 28px 36px 40px;
+}
+/* Without the sidebar the window buttons sit over the content's corner: clear them. */
+:root[data-platform="macos"] :is(.library, .course):is(.medium, .compact) {
+  padding: 32px 20px 32px;
+}
+:root[data-platform="macos"] .library-header,
+:root[data-platform="macos"] .course-header {
+  margin-bottom: 28px;
+}
+:root[data-platform="macos"] .library-search {
+  width: 260px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+}
+:root[data-platform="macos"] .library-header .btn,
+:root[data-platform="macos"] .course-header .btn {
+  height: 32px;
+  padding: 0 16px;
+}
+:root[data-platform="macos"] .course-grid {
+  grid-template-columns: repeat(auto-fill, minmax(190px, 232px));
+  gap: 22px;
+}
+/* A course is a notebook: a colored cover with a specular sheen, the facts beneath. */
+:root[data-platform="macos"] .course-tile {
+  flex-direction: column;
+  aspect-ratio: 5 / 6;
+  border: none;
+  border-radius: var(--radius-panel);
+  box-shadow: var(--card-shadow);
+  transition: transform 260ms var(--ease-spring), box-shadow 200ms ease-out;
+}
+:root[data-platform="macos"] .course-tile:hover {
+  background: var(--surface);
+  transform: translateY(-3px);
+  box-shadow: var(--card-shadow-hover);
+}
+:root[data-platform="macos"] .course-tile:active {
+  transform: scale(0.98);
+}
+:root[data-platform="macos"] .course-spine {
+  position: relative;
+  width: auto;
+  flex: 0 0 46%;
+  overflow: hidden;
+}
+:root[data-platform="macos"] .course-spine::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 100% at 0% 0%, rgba(255, 255, 255, 0.42), transparent 55%),
+    radial-gradient(110% 120% at 100% 100%, rgba(0, 0, 0, 0.26), transparent 60%);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.5);
+}
+:root[data-platform="macos"] .course-spine::after {
+  content: "menu_book";
+  position: absolute;
+  left: 16px;
+  bottom: 12px;
+  font-family: "Material Symbols Rounded";
+  font-size: 30px;
+  line-height: 1;
+  font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+:root[data-platform="macos"] .course-tile-body {
+  padding: 14px 16px 14px;
+}
+:root[data-platform="macos"] .session-list {
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+}
+:root[data-platform="macos"] .session-row {
+  height: 64px;
+  padding: 0 16px;
+  border-bottom: none;
+  box-shadow: inset 0 -0.5px 0 var(--border);
+}
+:root[data-platform="macos"] .session-row:last-child {
+  box-shadow: none;
+}
+:root[data-platform="macos"] .session-row:hover {
+  background: var(--fill-hover);
+}
+:root[data-platform="macos"] .deck-row {
+  gap: 20px;
+  /* room for the card shadows inside the horizontal scroller */
+  margin: -8px -36px 0;
+  padding: 8px 36px 28px;
+}
+:root[data-platform="macos"] .deck-card {
+  border: none;
+  border-radius: var(--radius-card);
+  box-shadow: var(--card-shadow);
+  transition: transform 260ms var(--ease-spring), box-shadow 200ms ease-out;
+}
+:root[data-platform="macos"] .deck-card:hover {
+  background: var(--surface);
+  transform: translateY(-3px);
+  box-shadow: var(--card-shadow-hover);
+}
+:root[data-platform="macos"] .deck-card-thumb {
+  border-bottom: none;
+  box-shadow: inset 0 -0.5px 0 var(--border);
+}
+/* The thumbnail fills the top of the card; its own frame (inline styles) goes. */
+:root[data-platform="macos"] .deck-card-thumb .deck-thumb {
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+}
+:root[data-platform="macos"] .deck-choice {
+  border-radius: var(--radius-item);
+}
+:root[data-platform="macos"] .deck-choice:hover {
+  background: var(--fill-hover);
+}
+
+/* ---------- session: title bar ---------- */
+/* No bar at all, as in a macOS 26 toolbar window: after the window buttons come the
+   sidebar toggle and Back as plain symbols, then the title, leading-aligned; the
+   panel toggles sit at the trailing edge. */
+:root[data-platform="macos"] .session {
+  background: transparent;
+}
+:root[data-platform="macos"] .session-top {
+  height: var(--titlebar-height);
+  flex-basis: var(--titlebar-height);
+  gap: 4px;
+  /* room for the close / minimize / zoom buttons, and air after them */
+  padding: 0 14px 0 96px;
+  background: transparent;
+  border-bottom: none;
+}
+:root[data-platform="macos"] .session-top .icon-btn {
+  width: 32px;
+  height: 28px;
+  border-radius: 8px;
+}
+:root[data-platform="macos"] .session-top .icon-btn.active {
+  background: transparent;
+  color: var(--accent);
+}
+:root[data-platform="macos"] .session-top .icon-btn.active:hover {
+  background: var(--fill-hover);
+}
+:root[data-platform="macos"] .session-top .material-symbols-rounded {
+  font-size: 19px !important;
+}
+:root[data-platform="macos"] .session-title-wrap {
+  justify-content: flex-start;
+  margin-left: 10px;
+}
+:root[data-platform="macos"] .session-title {
+  font-size: 14px;
+  line-height: 18px;
+}
+/* Full screen has no window buttons to make room for. */
+:root[data-platform="macos"][data-fullscreen] .session-top {
+  padding-left: 14px;
+}
+:root[data-platform="macos"][data-fullscreen] .nav-rail {
+  padding-top: 14px;
+}
+:root[data-platform="macos"] .deck-recordings-bar {
+  padding: 2px 14px 10px;
+  border-bottom: none;
+  color: var(--text2);
+}
+:root[data-platform="macos"] .deck-recordings-bar select {
+  color: var(--text);
+}
+
+/* ---------- session: panels ---------- */
+/* Thumbnails, slide and dock are three rounded panels on the window canvas; the gaps
+   between them are the resize handles. */
+:root[data-platform="macos"] .session-body {
+  padding: 0 var(--inset) var(--inset);
+}
+:root[data-platform="macos"] .session-divider {
+  width: var(--inset);
+  flex-basis: var(--inset);
+  margin: 0;
+}
+:root[data-platform="macos"] .session-divider::after,
+:root[data-platform="macos"] .session-divider.rail-divider::after {
+  display: block;
+  left: 2.5px;
+  top: calc(50% - 18px);
+  bottom: auto;
+  width: 3px;
+  height: 36px;
+  border-radius: 3px;
+  background: var(--text3);
+  opacity: 0;
+  transition: opacity var(--dur-hover) ease-out;
+}
+:root[data-platform="macos"] .session-divider:hover::after {
+  opacity: 0.7;
+}
+:root[data-platform="macos"] .rail {
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+/* The switcher clears the panel's rounded corner. */
+:root[data-platform="macos"] .rail-tabs {
+  height: auto;
+  padding: 12px 0 6px;
+  border-bottom: none;
+}
+:root[data-platform="macos"] .thumb-img {
+  border: none;
+  border-radius: 6px;
+  box-shadow: 0 0 0 0.5px var(--border), 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+:root[data-platform="macos"] .thumb.current .thumb-img {
+  border: none;
+  box-shadow: 0 0 0 2.5px var(--accent), 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+:root[data-platform="macos"] .outline-row {
+  margin: 0 6px;
+  border-radius: 7px;
+}
+:root[data-platform="macos"] .outline-row:hover {
+  background: var(--fill-hover);
+}
+:root[data-platform="macos"] .session-center {
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background: var(--slide-bg);
+  box-shadow: var(--card-shadow);
+}
+:root[data-platform="macos"] .session-viewer,
+:root[data-platform="macos"] .pdf-host {
+  background: transparent;
+}
+:root[data-platform="macos"] .pdf-container .pdfViewer .page {
+  outline: none;
+  border-radius: 3px;
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08), 0 12px 32px rgba(0, 0, 0, 0.1);
+}
+/* The PDF tools are one glass capsule floating on the slide canvas. */
+:root[data-platform="macos"] .slide-toolbar {
+  height: 44px;
+  flex-basis: 44px;
+  margin: var(--inset) var(--inset) 0;
+  padding: 0 8px;
+  gap: 2px;
+  border-radius: var(--radius-pill);
+  scrollbar-width: none;
+}
+:root[data-platform="macos"] .slide-toolbar::-webkit-scrollbar {
+  display: none;
+}
+:root[data-platform="macos"] .slide-toolbar .icon-btn {
+  width: 32px;
+  height: 32px;
+}
+:root[data-platform="macos"] .slide-toolbar .btn-outlined {
+  background: var(--fill-track);
+  box-shadow: none;
+}
+:root[data-platform="macos"] .toolbar-sep {
+  height: 18px;
+  margin: 0 5px;
+}
+:root[data-platform="macos"] .tool-swatch {
+  border-radius: var(--radius-pill);
+}
+:root[data-platform="macos"] .tool-swatch.selected {
+  border-color: transparent;
+  box-shadow: 0 0 0 1.5px var(--surface), 0 0 0 3px var(--text);
+}
+:root[data-platform="macos"] .prep-banner,
+:root[data-platform="macos"] .interrupt-banner {
+  margin: var(--inset) var(--inset) 0;
+  padding: 0 8px 0 14px;
+  border: none;
+  border-radius: 14px;
+  box-shadow: var(--card-shadow);
+}
+:root[data-platform="macos"] .page-pill {
+  bottom: 18px;
+  height: 38px;
+  padding: 0 5px;
+}
+:root[data-platform="macos"] .page-pill-label {
+  border-radius: var(--radius-pill);
+}
+:root[data-platform="macos"] .page-pill-label:hover {
+  background: var(--fill-hover);
+}
+:root[data-platform="macos"] .selection-toolbar {
+  height: 48px;
+  padding: 0 5px;
+  align-items: center;
+  border-radius: 16px;
+  box-shadow: var(--glass-edge), var(--glass-shadow-raised);
+}
+:root[data-platform="macos"] .selection-toolbar-btn {
+  height: 38px;
+  border-radius: 11px;
+}
+:root[data-platform="macos"] .selection-toolbar-btn:hover:not(:disabled) {
+  background: var(--fill-hover);
+}
+:root[data-platform="macos"] .session-dock,
+:root[data-platform="macos"] .session-dock-bottom {
+  border: none;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+}
+:root[data-platform="macos"] .session-dock-bottom {
+  margin: 0 var(--inset) var(--inset);
+}
+
+/* ---------- session: dock tabs ---------- */
+:root[data-platform="macos"] .markpdf-dock {
+  --dv-tabs-and-actions-container-height: 44px;
+  --dv-icon-hover-background-color: var(--fill-hover);
+  /* the selected tab is a filled capsule, in the key group and out of it */
+  --dv-activegroup-visiblepanel-tab-background-color: var(--fill-selected);
+  --dv-inactivegroup-visiblepanel-tab-background-color: var(--fill-selected);
+  --dv-activegroup-hiddenpanel-tab-background-color: transparent;
+  --dv-inactivegroup-hiddenpanel-tab-background-color: transparent;
+}
+:root[data-platform="macos"] .markpdf-dock .dv-tabs-and-actions-container {
+  border-bottom: none;
+  box-shadow: inset 0 -0.5px 0 var(--border);
+}
+:root[data-platform="macos"] .markpdf-dock .dv-tabs-container {
+  align-items: center;
+  gap: 2px;
+  padding: 0 8px;
+}
+:root[data-platform="macos"] .markpdf-dock .dv-tab {
+  height: 28px;
+  padding: 0 12px;
+  border-bottom: none;
+  border-radius: var(--radius-pill);
+  font-weight: 500;
+  transition: background var(--dur-hover) ease-out;
+}
+/* !important: dockview colors tabs through a six-class selector */
+:root[data-platform="macos"] .markpdf-dock .dv-tab:not(.dv-active-tab):hover {
+  background-color: var(--fill-hover) !important;
+}
+:root[data-platform="macos"] .markpdf-dock .dv-tab.dv-active-tab {
+  font-weight: 600;
+}
+:root[data-platform="macos"] .markpdf-dock .dv-tab:focus-within::after,
+:root[data-platform="macos"] .markpdf-dock .dv-tab:focus::after {
+  outline: none !important;
+}
+:root[data-platform="macos"] .panel-search {
+  border-radius: var(--radius-pill);
+  padding: 0 12px;
+}
+:root[data-platform="macos"] .search-hit:hover,
+:root[data-platform="macos"] .ann-item:hover {
+  background: var(--fill-hover);
+}
+:root[data-platform="macos"] .ann-item {
+  border-bottom: none;
+  box-shadow: inset 0 -0.5px 0 var(--border);
+}
+/* Rows are inset rounded cells, not full-bleed bands. */
+:root[data-platform="macos"] .transcript-row {
+  width: calc(100% - 12px);
+  margin: 0 6px;
+  padding: 8px 10px;
+  border-radius: var(--radius-item);
+}
+:root[data-platform="macos"] .transcript-row:hover {
+  background: var(--fill-hover);
+}
+:root[data-platform="macos"] .transcript-row.current {
+  background: var(--accent-soft);
+}
+/* "Back to now" floats over the transcript: glass. */
+:root[data-platform="macos"] .transcript-back {
+  border: none;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+}
+
+/* ---------- session: transport ---------- */
+/* Transport and timeline are one glass panel floating at the foot of the window. */
+:root[data-platform="macos"] .session-bottom {
+  margin: 0 var(--inset) var(--inset);
+  border-radius: 22px;
+  overflow: hidden;
+}
+:root[data-platform="macos"] .transport {
+  height: 64px;
+  flex-basis: 64px;
+  padding: 0 16px 0 10px;
+  gap: 14px;
+  background: transparent;
+  border-top: none;
+  scrollbar-width: none;
+}
+:root[data-platform="macos"] .transport::-webkit-scrollbar {
+  display: none;
+}
+:root[data-platform="macos"] .scrubber {
+  height: 26px;
+  flex-basis: 26px;
+  margin: 0 12px 10px;
+  border-top: none;
+  border-radius: 8px;
+  overflow: hidden;
+  background: transparent;
+}
+:root[data-platform="macos"] .scrubber-tip {
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+}
+:root[data-platform="macos"] .play-btn {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 86%, #fff), var(--accent));
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.45), 0 1px 2px color-mix(in srgb, var(--accent) 50%, transparent),
+    0 6px 18px color-mix(in srgb, var(--accent) 32%, transparent);
+  transition: transform 200ms var(--ease-spring);
+}
+:root[data-platform="macos"] .play-btn:not(:disabled):active {
+  transform: scale(0.92);
+}
+:root[data-platform="macos"] .play-btn:disabled {
+  opacity: 0.45;
+  box-shadow: none;
+}
+:root[data-platform="macos"] .record-btn {
+  width: 44px;
+  height: 44px;
+  background: var(--control-bg);
+  box-shadow: var(--control-edge);
+  transition: transform 200ms var(--ease-spring);
+}
+:root[data-platform="macos"] .record-btn:active {
+  transform: scale(0.92);
+}
+:root[data-platform="macos"] .record-btn.recording {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--record) 86%, #fff), var(--record));
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.45), 0 6px 18px color-mix(in srgb, var(--record) 36%, transparent);
+}
+:root[data-platform="macos"] .record-btn.paused {
+  background: transparent;
+  box-shadow: none;
+}
+:root[data-platform="macos"] .record-btn.compact {
+  width: 32px;
+  height: 32px;
+}
+:root[data-platform="macos"] .marker-btn {
+  border-radius: 12px;
+}
+:root[data-platform="macos"] .marker-btn:hover:not(:disabled),
+:root[data-platform="macos"] .marker-nav .chip:hover {
+  background: var(--fill-hover);
+}
+:root[data-platform="macos"] .marker-nav .chip {
+  height: 26px;
+}
+:root[data-platform="macos"] .level-bar {
+  background: var(--fill-selected);
+  border-radius: 2px;
+}
+:root[data-platform="macos"] .asr-chip.asr-off {
+  background: var(--fill-track);
+}
+
+/* ---------- settings ---------- */
+/* The pane list is a plain source list on the canvas, next to the glass sidebar; the
+   panes are grouped forms, as in System Settings. */
+:root[data-platform="macos"] .settings.two-col {
+  margin-top: -20px;
+  height: calc(100% + 20px);
+}
+:root[data-platform="macos"] .settings-nav {
+  width: 212px;
+  flex-basis: 212px;
+  padding: var(--titlebar-height) 10px 10px 14px;
+  gap: 2px;
+  background: transparent;
+  border-right: none;
+}
+:root[data-platform="macos"] .settings.two-col .settings-content {
+  padding: var(--titlebar-height) 36px 40px 22px;
+}
+:root[data-platform="macos"] .settings-nav-item {
+  height: 34px;
+  gap: 9px;
+  padding: 0 10px;
+  border-radius: var(--radius-item);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+:root[data-platform="macos"] .settings-nav-item .material-symbols-rounded {
+  font-size: 19px !important;
+  color: var(--accent);
+}
+:root[data-platform="macos"] .settings-nav-item:hover {
+  background: var(--fill-hover);
+}
+/* Selected content in the key view: accent fill, white text. */
+:root[data-platform="macos"] .settings-nav-item.active,
+:root[data-platform="macos"] .settings-nav-item.active .material-symbols-rounded {
+  background: var(--accent);
+  color: #fff;
+}
+:root[data-platform="macos"] .settings-nav-item.active {
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--accent) 40%, transparent), 0 4px 12px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+:root[data-platform="macos"] .settings-group h2 {
+  margin-bottom: 16px;
+}
+/* Runs of rows read as one rounded group. */
+:root[data-platform="macos"] .settings-row {
+  min-height: 46px;
+  padding: 8px 14px;
+  border-bottom: none;
+  background: var(--surface);
+  box-shadow: inset 0 -0.5px 0 var(--border), 0.5px 0 0 var(--border), -0.5px 0 0 var(--border);
+}
+:root[data-platform="macos"] .settings-row:first-child,
+:root[data-platform="macos"] :not(.settings-row) + .settings-row {
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  box-shadow: inset 0 -0.5px 0 var(--border), 0 0 0 0.5px var(--border);
+}
+:root[data-platform="macos"] .settings-row:last-child,
+:root[data-platform="macos"] .settings-row:has(+ :not(.settings-row)) {
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 0 0 0.5px var(--border), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+:root[data-platform="macos"] .settings-subtitle {
+  margin: 28px 0 8px;
+  font-size: 15px;
+}
+:root[data-platform="macos"] .shortcut-table td {
+  border-bottom: none;
+  box-shadow: inset 0 -0.5px 0 var(--border);
+}
+
+/* ---------- accessibility ---------- */
+/* Reduce Transparency: the glass becomes an opaque panel of the same shape. */
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-platform="macos"] {
+    --glass-bg: var(--surface);
+    --glass-bg-thick: var(--surface);
+    --glass-filter: none;
+    --wash-1: 0%;
+    --wash-2: 0%;
+  }
+  :root[data-platform="macos"] :is(.menu, .dialog),
+  :root[data-platform="macos"] .shell-content::before {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+/* Increase Contrast (it turns Reduce Transparency on as well): opaque panels, real
+   borders, stronger labels. */
+@media (prefers-contrast: more) {
+  :root[data-platform="macos"] {
+    --border: rgba(0, 0, 0, 0.45);
+    --text: #000000;
+    --text2: rgba(0, 0, 0, 0.75);
+    --text3: rgba(0, 0, 0, 0.65);
+    --glass-bg: var(--surface);
+    --glass-bg-thick: var(--surface);
+    --glass-filter: none;
+    --glass-edge: 0 0 0 1px rgba(0, 0, 0, 0.5);
+    --control-edge: 0 0 0 1px rgba(0, 0, 0, 0.5);
+    --card-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+    --card-shadow-hover: 0 0 0 1.5px rgba(0, 0, 0, 0.6);
+    --wash-1: 0%;
+    --wash-2: 0%;
+  }
+  :root[data-platform="macos"] :is(.menu, .dialog) {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media (prefers-contrast: more) and (prefers-color-scheme: dark) {
+  :root[data-platform="macos"] {
+    --border: rgba(255, 255, 255, 0.5);
+    --text: #ffffff;
+    --text2: rgba(255, 255, 255, 0.8);
+    --text3: rgba(255, 255, 255, 0.7);
+    --glass-edge: 0 0 0 1px rgba(255, 255, 255, 0.55);
+    --control-edge: 0 0 0 1px rgba(255, 255, 255, 0.55);
+    --card-shadow: 0 0 0 1px rgba(255, 255, 255, 0.45);
+    --card-shadow-hover: 0 0 0 1.5px rgba(255, 255, 255, 0.65);
+  }
+}

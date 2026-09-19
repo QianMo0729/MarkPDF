@@ -19,6 +19,8 @@ import { recordingsForDeck, selectedRecordingId } from "./deckRecordings";
 import { NoModelError, useRetranscribe } from "./controllers/retranscribe";
 import { deleteSessionWithFiles } from "../../domain/deletion";
 import { printFile } from "../../platform/files";
+import { onMenuCommand, syncMenu } from "../../platform/menu";
+import { isMac, shortcutLabel } from "../../platform/os";
 import { getState, setState } from "../../data/db/repos/syncState";
 import { cacheDir, sessionWavPath } from "../../data/files/file_store";
 import { activatePanel, DockHost, type PanelComponent } from "../../dock/DockHost";
@@ -123,6 +125,7 @@ export function SessionScreen({ kind }: Props) {
   const settings = useSettings((s) => s.settings);
   const setSetting = useSettings((s) => s.set);
   const railCollapsed = settings.railCollapsed;
+  const recordingsBarOpen = !settings.recordingsBarCollapsed;
   const viewer = useViewerState();
 
   const rec = useRecording();
@@ -363,7 +366,7 @@ export function SessionScreen({ kind }: Props) {
       const path = await join(await cacheDir(), "print", `${deck.data.id}.pdf`);
       await writeBytes(path, result.bytes);
       try {
-        await printFile(path);
+        if ((await printFile(path)) === "opened_in_viewer") toast(S.session.printInPreview);
       } catch {
         // Nothing handles printing PDFs (or the default viewer has no print verb): hand
         // the file over instead of "opening" it, which could loop back into MarkPDF.
@@ -374,6 +377,21 @@ export function SessionScreen({ kind }: Props) {
       toast(S.errors.generic(String(e)), "error");
     }
   };
+
+  // ----- macOS menu bar: commands without a shortcut, and what the menu should offer -----
+  const menuActions = useRef({ exportMarkdown, printPdf });
+  menuActions.current = { exportMarkdown, printPdf };
+  useEffect(() => {
+    const unlisten = onMenuCommand((command) => {
+      if (command === "export-markdown") void menuActions.current.exportMarkdown();
+      else if (command === "print") void menuActions.current.printPdf();
+    });
+    return () => void unlisten.then((fn) => fn());
+  }, []);
+  useEffect(() => {
+    syncMenu({ session: true, live: mode === "live", recording: mode === "live" && rec.status !== "idle", railOpen, dockOpen });
+  }, [mode, rec.status, railOpen, dockOpen]);
+  useEffect(() => () => syncMenu({ session: false, live: false, recording: false, railOpen: false, dockOpen: false }), []);
 
   // ----- keyboard shortcuts (docs/SPEC.md 6.6) -----
   const [confirmEnd, setConfirmEnd] = useState(false);
@@ -673,17 +691,23 @@ export function SessionScreen({ kind }: Props) {
     }
   };
 
+  const railButton = (
+    <button className={`icon-btn ${railOpen ? "active" : ""}`} aria-label={S.session.thumbnails} title={shortcutLabel("Ctrl+Shift+\\")} onClick={toggleRail}>
+      <Icon name="left_panel_open" size={20} />
+    </button>
+  );
+
   return (
     <TranscriptTranslationProvider sessionId={currentRecording?.deck_id === effectiveDeckId ? currentRecording.id : null}>
     <div className={`session ${layout}`}>
-      <header className="session-top">
+      <header className="session-top" data-tauri-drag-region={isMac ? "" : undefined}>
+        {/* macOS: sidebar toggle first, then back — the order of a native toolbar. */}
+        {isMac && railButton}
         <button className="icon-btn" aria-label={S.session.back} onClick={onBack}>
-          <Icon name="arrow_back" size={24} />
+          <Icon name="arrow_back" size={isMac ? 20 : 24} />
         </button>
-        <button className={`icon-btn ${railOpen ? "active" : ""}`} aria-label={S.session.thumbnails} title="Ctrl+Shift+\\" onClick={toggleRail}>
-          <Icon name="left_panel_open" size={20} />
-        </button>
-        <div className="grow row" style={{ justifyContent: "center", gap: 8 }}>
+        {!isMac && railButton}
+        <div className="grow row session-title-wrap">
           <span className="subtitle session-title" onDoubleClick={() => setRenaming(true)}>
             {title}
           </span>
@@ -695,7 +719,11 @@ export function SessionScreen({ kind }: Props) {
           )}
         </div>
         <span className="sync-dot offline" title="本地模式" aria-label="本地模式" />
-        <button className={`icon-btn ${dockOpen ? "active" : ""}`} aria-label={S.panels.notes} title="Ctrl+\\" onClick={() => setDockOpen((v) => !v)}>
+        <button className={`icon-btn ${recordingsBarOpen ? "active" : ""}`} aria-label={S.session.recordingsBar} title={S.session.recordingsBar} aria-pressed={recordingsBarOpen}
+          onClick={() => void setSetting("recordingsBarCollapsed", recordingsBarOpen)}>
+          <Icon name="graphic_eq" size={20} />
+        </button>
+        <button className={`icon-btn ${dockOpen ? "active" : ""}`} aria-label={S.panels.notes} title={shortcutLabel("Ctrl+\\")} onClick={() => setDockOpen((v) => !v)}>
           <Icon name="right_panel_open" size={20} />
         </button>
         <button className="icon-btn" aria-label="更多" onClick={openMore}>
@@ -703,7 +731,7 @@ export function SessionScreen({ kind }: Props) {
         </button>
       </header>
 
-      <div className="deck-recordings-bar">
+      {recordingsBarOpen && <div className="deck-recordings-bar">
         <Icon name="graphic_eq" size={19} />
         <label htmlFor="deck-recording">此 PDF 的录音</label>
         <select id="deck-recording" className="input" value={currentRecording?.id ?? ""}
@@ -724,7 +752,7 @@ export function SessionScreen({ kind }: Props) {
         )}
         <button className="btn btn-outlined" disabled={!deck.data || rec.status !== "idle" || rec.starting || creating}
           onClick={() => void startClass()}><Icon name="mic" size={18} />{creating ? "准备中…" : "新增录音"}</button>
-      </div>
+      </div>}
 
       <div className="session-body">
         {expanded && railOpen && (
@@ -795,7 +823,7 @@ export function SessionScreen({ kind }: Props) {
       {!expanded && dockOpen && <div className="session-dock-bottom">{dock}</div>}
 
       {showBottom && (
-        <>
+        <div className="session-bottom">
           {mode === "live" ? (
             <TransportBarLive onEnded={() => setBannerDismissed(true)} />
           ) : (
@@ -808,7 +836,7 @@ export function SessionScreen({ kind }: Props) {
             mode={mode === "live" ? "live" : "replay"}
             onSeek={mode === "replay" ? jumpTo : undefined}
           />
-        </>
+        </div>
       )}
 
       {menu.element}

@@ -40,7 +40,15 @@
 .markpdf-dock .dv-right-actions-container {
   display: flex;
   align-items: center;
+  flex: 0 0 auto;
   padding-right: 4px;
+}
+/* Split and Add stay side by side when many tabs squeeze the header. */
+.markpdf-dock .dv-right-actions-container > * {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  flex: 0 0 auto;
 }
 .markpdf-dock .dock-add {
   width: 28px;

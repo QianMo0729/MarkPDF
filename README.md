@@ -1,16 +1,25 @@
 # MarkPDF
 
-**[下载 Windows 安装包（.exe）](https://github.com/QianMo0729/MarkPDF/releases/download/v0.1.2/MarkPDF_0.1.2_x64-setup.exe)** · [所有版本](https://github.com/QianMo0729/MarkPDF/releases) · [v0.1.2 更新说明](docs/RELEASE_NOTES_0.1.2.md)
+**[下载 Windows 安装包（.exe）](https://github.com/QianMo0729/MarkPDF/releases/download/v0.1.3/MarkPDF_0.1.3_x64-setup.exe)** · **[下载 macOS 安装包（Apple 芯片）](https://github.com/QianMo0729/MarkPDF/releases/download/v0.1.3/MarkPDF_0.1.3_aarch64.dmg)** · [所有版本](https://github.com/QianMo0729/MarkPDF/releases) · [v0.1.3 更新说明](docs/RELEASE_NOTES_0.1.3.md)
 
 把 PDF、Markdown 笔记和课堂录音放在一起。围绕同一份课件阅读、标注、记录和回听，自由安排笔记、转写与翻译面板。
 
 ## 安装与开始使用
 
-1. 打开 [Releases 下载页](https://github.com/QianMo0729/MarkPDF/releases/latest)，在 **Assets** 中下载 `MarkPDF_0.1.2_x64-setup.exe`。
+1. 打开 [Releases 下载页](https://github.com/QianMo0729/MarkPDF/releases/latest)，在 **Assets** 中下载 `MarkPDF_0.1.3_x64-setup.exe`。
 2. 双击安装包，按安装向导完成安装。使用 MarkPDF **不需要安装 Node.js 或 Rust**。若电脑缺少 WebView2，安装器会联网下载所需运行组件。
 3. 新建课程并导入 PDF，即可阅读和记笔记。需要录音时，在该 PDF 顶部点击「新增录音」。
 
 当前安装包未进行代码签名，Windows 可能显示 SmartScreen 提示。请确认下载来源为本仓库的 Releases 页面。
+
+### macOS
+
+macOS 版（Apple 芯片，macOS 11 及以上）可从 [Releases 下载页](https://github.com/QianMo0729/MarkPDF/releases/latest) 下载 `MarkPDF_0.1.3_aarch64.dmg`。打开 `.dmg`，把 MarkPDF 拖入“应用程序”。也可以[从源码构建](docs/BUILDING.md#macos)。
+
+- 应用未经 Apple 公证。若 `.dmg` 是从网上下载的，首次打开会被拦下：到“系统设置 → 隐私与安全性”点“仍要打开”。
+- 首次录音时系统会询问麦克风权限；拒绝后可在“系统设置 → 隐私与安全性 → 麦克风”中重新打开。
+- 界面遵循 macOS 的习惯：菜单栏包含全部命令，快捷键用 ⌘（如 ⇧⌘R 开始 / 结束录音、⌘, 打开设置），外观与强调色跟随系统设置。在访达中可用“打开方式”把 PDF 交给 MarkPDF。
+- “打印”会在“预览”中打开带标注的 PDF，按 ⌘P 打印。
 
 ## 可以做什么
 
@@ -36,7 +45,7 @@
 
 ### 用 ChatGPT 账号（Codex）
 
-在「设置 → 翻译与 AI → 接入方式」选择 **ChatGPT 账号（Codex）**，需要本机已安装 Codex CLI（`npm install -g @openai/codex`，或填写 codex.exe 路径）。点击「登录 ChatGPT」在浏览器完成登录后，可从列表里选择模型和推理强度，翻译、解释和纠错都走你的订阅额度，不需要 API Key。登录与令牌由 Codex 自己保存在 `~/.codex`，MarkPDF 不保存凭据。OpenAI 目前允许第三方工具通过 Codex 登录使用订阅，但条款没有明文承诺，政策可能变化。
+在「设置 → 翻译与 AI → 接入方式」选择 **ChatGPT 账号（Codex）**，需要本机已安装 Codex CLI（`npm install -g @openai/codex`，或填写 codex 可执行文件路径；macOS 上会自动查找 Homebrew、nvm 等常见安装位置）。点击「登录 ChatGPT」在浏览器完成登录后，可从列表里选择模型和推理强度，翻译、解释和纠错都走你的订阅额度，不需要 API Key。登录与令牌由 Codex 自己保存在 `~/.codex`，MarkPDF 不保存凭据。OpenAI 目前允许第三方工具通过 Codex 登录使用订阅，但条款没有明文承诺，政策可能变化。
 
 ### 使用自己的 AI 服务
 
@@ -46,12 +55,12 @@ AI 翻译、解释和上下文纠错会将相应文本发送到你配置的服�
 
 ## 升级与数据
 
-升级前请结束正在进行的录音，等待笔记保存，然后退出 MarkPDF。建议先备份 Windows 本地数据目录 `%APPDATA%\com.markpdf.app\`，再运行新安装包。该目录包含课件、笔记数据库、录音和模型，升级时请保留；若安装向导先卸载旧版，请勿勾选删除应用数据。
+升级前请结束正在进行的录音，等待笔记保存，然后退出 MarkPDF。建议先备份本地数据目录（Windows：`%APPDATA%\com.markpdf.app\`；macOS：`~/Library/Application Support/com.markpdf.app/`），再运行新安装包。该目录包含课件、笔记数据库、录音和模型，升级时请保留；若安装向导先卸载旧版，请勿勾选删除应用数据。
 
-当前版本提供 Windows x64 安装包，以本地使用为主；账号同步、云端转写等功能尚未提供。
+当前版本提供 Windows x64 安装包和 macOS Apple 芯片安装包，以本地使用为主；账号同步、云端转写等功能尚未提供。
 
 ## 开发与反馈
 
 - [从源码构建](docs/BUILDING.md)
-- [v0.1.2 更新说明](docs/RELEASE_NOTES_0.1.2.md)
+- [v0.1.3 更新说明](docs/RELEASE_NOTES_0.1.3.md)
 - [提交问题或建议](https://github.com/QianMo0729/MarkPDF/issues)

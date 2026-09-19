@@ -15,7 +15,11 @@ export function fileSize(path: string): Promise<number> {
   return invoke<number>("file_size", { path });
 }
 
-/** Print through the shell "print" verb (the user's PDF reader); rejects when nothing handles it. */
-export function printFile(path: string): Promise<void> {
-  return invoke<void>("print_file", { path });
+/**
+ * Print through the shell "print" verb (the user's PDF reader); rejects when nothing
+ * handles it. macOS has no such verb: the file opens in Preview ("opened_in_viewer")
+ * and the user prints from there.
+ */
+export function printFile(path: string): Promise<"printing" | "opened_in_viewer"> {
+  return invoke<"printing" | "opened_in_viewer">("print_file", { path });
 }
