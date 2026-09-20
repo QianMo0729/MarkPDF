@@ -46,7 +46,7 @@ vi.mock("../src/platform/asr", () => ({
 }));
 
 const emptySession = (id = "session-a") => ({
-  id, deck_id: "pdf-a", started_at: null, ended_at: null, local_wav_path: null,
+  id, deck_id: id === "session-b" ? "pdf-b" : "pdf-a", started_at: null, ended_at: null, local_wav_path: null,
 } as SessionRow);
 
 function deferred<T>() {
@@ -89,6 +89,65 @@ afterEach(() => {
 });
 
 describe("recording lifecycle protects saved audio", () => {
+  const savedRecording = {
+    ...emptySession(), started_at: "2026-09-15T00:00:00Z", ended_at: "2026-09-15T00:01:00Z",
+    local_wav_path: "C:/existing.wav", duration_ms: 60000, initial_page_index: 2,
+  };
+
+  it("explicitly appends at the native duration while preserving the original start and page", async () => {
+    mocks.getSession.mockResolvedValue(savedRecording);
+    mocks.audioStatus.mockResolvedValue({state: "recording", t_ms: 61000});
+    await useRecording.getState().start(7, {append: true});
+    expect(mocks.audioStart).toHaveBeenCalledWith("C:/existing.wav", true);
+    expect(mocks.updateSession).toHaveBeenCalledWith("session-a", {
+      ended_at: null, duration_ms: 61000, audio_status: "recording", local_wav_path: "C:/existing.wav",
+    });
+    expect(mocks.appendEvent.mock.calls).toEqual([
+      ["session-a", "recording_state", 61000, {state: "resumed"}],
+      ["session-a", "page_change", 61000, {page_index: 7}],
+    ]);
+    expect(useRecording.getState()).toMatchObject({status: "recording", tMs: 61000});
+    mocks.audioStop.mockResolvedValue({duration_ms: 65000});
+    await useRecording.getState().stop();
+    expect(mocks.updateSession).toHaveBeenLastCalledWith("session-a", expect.objectContaining({duration_ms: 65000, audio_status: "local"}));
+  });
+
+  it("leaves saved metadata untouched when the original WAV cannot be opened", async () => {
+    mocks.getSession.mockResolvedValue(savedRecording);
+    mocks.audioStart.mockRejectedValue(new Error("file not found"));
+    await useRecording.getState().start(7, {append: true});
+    expect(mocks.audioStart).toHaveBeenCalledWith("C:/existing.wav", true);
+    expect(mocks.updateSession).not.toHaveBeenCalled();
+    expect(mocks.appendEvent).not.toHaveBeenCalled();
+    expect(useRecording.getState()).toMatchObject({status: "idle", tMs: 60000, starting: false});
+  });
+
+  it("preserves both the original recording and newly captured audio if append startup fails", async () => {
+    mocks.getSession.mockResolvedValue(savedRecording);
+    mocks.audioStatus.mockResolvedValue({state: "recording", t_ms: 60000});
+    mocks.audioStop.mockResolvedValue({duration_ms: 60500});
+    mocks.appendEvent.mockRejectedValueOnce(new Error("event write failed"));
+    await useRecording.getState().start(7, {append: true});
+    expect(mocks.audioStop).toHaveBeenCalledOnce();
+    expect(mocks.updateSession).toHaveBeenLastCalledWith("session-a", expect.objectContaining({
+      started_at: savedRecording.started_at, initial_page_index: 2, duration_ms: 60500,
+      local_wav_path: savedRecording.local_wav_path, audio_status: "local", ended_at: expect.any(String),
+    }));
+    expect(useRecording.getState().status).toBe("idle");
+  });
+
+  it.each([
+    {...savedRecording, local_wav_path: null},
+    {...savedRecording, started_at: null},
+    {...savedRecording, deck_id: "another-pdf"},
+  ])("refuses to append an unavailable or unrelated recording", async (saved) => {
+    mocks.getSession.mockResolvedValue(saved);
+    await useRecording.getState().start(7, {append: true});
+    expect(mocks.audioStart).not.toHaveBeenCalled();
+    expect(mocks.updateSession).not.toHaveBeenCalled();
+    expect(useRecording.getState().status).toBe("idle");
+  });
+
   it.each([
     ["started timestamp", {...emptySession(), started_at: "2026-09-15T00:00:00Z"}],
     ["ended timestamp", {...emptySession(), ended_at: "2026-09-15T00:00:00Z"}],

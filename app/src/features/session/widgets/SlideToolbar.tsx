@@ -23,15 +23,16 @@ const ZOOM_PRESETS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
 
 interface Props {
   onSearch: () => void;
-  /** Deck reader: the record button starts a class on this deck (docs/SPEC.md 6.5.3). */
+  /** Reading / replay: start recording or choose whether to continue an existing one. */
   onStartClass?: () => void;
+  recordingDisabled?: boolean;
   onExportPdf: () => void;
   onExportMarkdown: () => void;
   onPrint: () => void;
 }
 
 /** Edge-aligned tool strip above the viewer (docs/SPEC.md 6.5.3). */
-export function SlideToolbar({ onSearch, onStartClass, onExportPdf, onExportMarkdown, onPrint }: Props) {
+export function SlideToolbar({ onSearch, onStartClass, recordingDisabled, onExportPdf, onExportMarkdown, onPrint }: Props) {
   const tool = useSessionUi((s) => s.tool);
   const mode = useSessionUi((s) => s.mode);
   const setTool = useSessionUi((s) => s.setTool);
@@ -79,13 +80,13 @@ export function SlideToolbar({ onSearch, onStartClass, onExportPdf, onExportMark
       <span className="toolbar-sep" />
       {mode === "live" && (
         <>
-          <RecordButton compact currentPage={state.currentPage} />
+          <RecordButton compact currentPage={state.currentPage} disabled={recordingDisabled} />
           <span className="toolbar-sep" />
         </>
       )}
-      {mode === "reading" && onStartClass && (
+      {mode !== "live" && onStartClass && (
         <>
-          <RecordButton compact currentPage={state.currentPage} onStart={onStartClass} />
+          <RecordButton compact currentPage={state.currentPage} onStart={onStartClass} disabled={recordingDisabled} />
           <span className="toolbar-sep" />
         </>
       )}

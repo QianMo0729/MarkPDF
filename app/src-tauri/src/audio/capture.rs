@@ -94,7 +94,7 @@ impl Recorder {
         #[cfg(target_os = "macos")]
         super::mic_permission::ensure_access()?;
 
-        let writer = if opts.append && opts.wav_path.exists() {
+        let writer = if opts.append {
             WavWriter::append(&opts.wav_path)
         } else {
             WavWriter::create(&opts.wav_path)

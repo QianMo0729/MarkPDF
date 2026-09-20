@@ -6,7 +6,7 @@ import { nowIso } from "../../../core/utils/ids";
 import { appendEvent } from "../../../data/db/repos/events";
 import { getSession, updateSession } from "../../../data/db/repos/sessions";
 import { insertDeviceSegment } from "../../../data/db/repos/transcripts";
-import type { AnnotationRow } from "../../../data/db/schema";
+import type { AnnotationRow, SessionRow } from "../../../data/db/schema";
 import { sessionWavPath } from "../../../data/files/file_store";
 import type { MarkerKind } from "../../../domain/timeline";
 import { asrStart, asrStop, onAsrFinal, onAsrPartial, onAsrStatus } from "../../../platform/asr";
@@ -37,7 +37,8 @@ interface RecordingStore {
   /** Binds the store to a session; refused (returns false) while another session is recording. */
   attach: (sessionId: string, deckId: string) => boolean;
   detach: () => void;
-  start: (currentPage: number) => Promise<void>;
+  /** Appending is explicit: an ordinary start must never replace saved audio. */
+  start: (currentPage: number, options?: { append?: boolean }) => Promise<void>;
   pause: () => Promise<void>;
   resume: () => Promise<void>;
   stop: () => Promise<number | null>;
@@ -249,7 +250,7 @@ export const useRecording = create<RecordingStore>((set, get) => ({
     set({ sessionId: null, deckId: null, status: "idle", tMs: 0, asr: "off", partial: "" });
   },
 
-  start: (currentPage) => {
+  start: (currentPage, { append = false } = {}) => {
     const { sessionId, status } = get();
     if (!sessionId || status !== "idle" || get().starting || stopping || pendingRecordingStart) return Promise.resolve();
     const generation = ++recordingGeneration;
@@ -260,27 +261,43 @@ export const useRecording = create<RecordingStore>((set, get) => ({
     pendingRecordingStart = (async () => {
       let nativeStarted = false;
       let wavPath: string | null = null;
+      let session: SessionRow | null = null;
+      let startMs = 0;
       try {
-        const session = await getSession(sessionId);
+        session = await getSession(sessionId);
         ensureCurrent();
-        if (!session || session.started_at || session.ended_at || session.local_wav_path) {
+        if (!session || session.deck_id !== get().deckId) {
+          throw new Error("录音不存在或已切换课件，无法开始。请重新选择录音，以保留原录音。");
+        }
+        if (append && (!session.started_at || !session.local_wav_path)) {
+          throw new Error("原录音文件不可用，无法继续录音；可以新建录音。");
+        }
+        if (!append && (session.started_at || session.ended_at || session.local_wav_path)) {
           throw new Error("这段录音已有内容，请使用“新增录音”，以保留原录音。");
         }
-        wavPath = await sessionWavPath(sessionId);
+        wavPath = append ? session.local_wav_path! : await sessionWavPath(sessionId);
         ensureCurrent();
-        await audioStart(wavPath, false);
+        await audioStart(wavPath, append);
         nativeStarted = true;
         ensureCurrent();
+        if (append) {
+          startMs = (await audioStatus()).t_ms;
+          ensureCurrent();
+        }
         await installListeners(set, get);
         ensureCurrent();
         lastEmittedPage = currentPage;
         lastNoteSnapshot.clear();
         lastAnnotationPayload.clear();
-        await updateSession(sessionId, { started_at: nowIso(), initial_page_index: currentPage, audio_status: "recording", local_wav_path: wavPath });
+        await updateSession(sessionId, append
+          ? { ended_at: null, duration_ms: startMs, audio_status: "recording", local_wav_path: wavPath }
+          : { started_at: nowIso(), initial_page_index: currentPage, audio_status: "recording", local_wav_path: wavPath });
         ensureCurrent();
-        await appendEvent(sessionId, "recording_state", 0, { state: "started" });
+        await appendEvent(sessionId, "recording_state", startMs, { state: append ? "resumed" : "started" });
         ensureCurrent();
-        set({ status: "recording", tMs: 0, interrupted: false, interruptReason: null });
+        if (append) await appendEvent(sessionId, "page_change", startMs, { page_index: currentPage });
+        ensureCurrent();
+        set({ status: "recording", tMs: startMs, interrupted: false, interruptReason: null });
         void startAsr(set, get);
 
         // Snapshot hooks (docs/SPEC.md 5.3 / 5.6).
@@ -323,13 +340,14 @@ export const useRecording = create<RecordingStore>((set, get) => ({
           // A cancellation after the mic opened can already contain speech. Keep
           // that WAV associated with this session so retry cannot truncate it.
           if (wavPath) await updateSession(sessionId, {
-            started_at: nowIso(), ended_at: nowIso(), initial_page_index: currentPage,
-            local_wav_path: wavPath, duration_ms: stopped?.duration_ms ?? get().tMs, audio_status: "local",
+            started_at: append ? session!.started_at : nowIso(), ended_at: nowIso(),
+            initial_page_index: append ? session!.initial_page_index : currentPage,
+            local_wav_path: wavPath, duration_ms: stopped?.duration_ms ?? (append ? Math.max(startMs, session?.duration_ms ?? 0) : get().tMs), audio_status: "local",
           }).catch((err) => console.warn("[audio] preserving cancelled recording failed", err));
         }
         await removeListeners();
         clearSnapshotHooks();
-        set({ status: "idle", tMs: 0 });
+        set({ status: "idle", tMs: append ? Math.max(startMs, session?.duration_ms ?? 0) : 0 });
         if (!(e instanceof RecordingStartCancelled)) {
           const msg = String(e);
           toast(msg.includes("mic_permission_denied") || msg.includes("mic_not_found") ? S.errors.mic : S.errors.recordingStart(msg), "error");

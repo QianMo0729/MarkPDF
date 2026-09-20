@@ -1,6 +1,6 @@
 [package]
 name = "markpdf"
-version = "0.1.3"
+version = "0.1.4"
 description = "MarkPDF: PDF reader, Markdown notes and lecture recording"
 authors = ["MarkPDF"]
 edition = "2021"

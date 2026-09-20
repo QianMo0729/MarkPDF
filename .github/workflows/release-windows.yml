@@ -3,12 +3,22 @@ name: Installer release
 on:
   push:
     tags: ['v[0-9]*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version tag for a Windows draft; upload the locally signed Mac package before publishing'
+        required: true
+        default: 'v0.1.4'
+        type: string
 
 permissions:
   contents: read
 
+env:
+  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -50,7 +60,7 @@ jobs:
         run: npm.cmd ci
       - name: Check tag, manifests and release notes
         id: release_metadata
-        run: node scripts/check-release-version.mjs --tag "$env:GITHUB_REF_NAME" --github-output
+        run: node scripts/check-release-version.mjs --tag "$env:RELEASE_TAG" --github-output
       - name: Verify pinned translation engine
         run: node scripts/download-translation-assets.mjs
       - name: Frontend tests and build
@@ -66,7 +76,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: app
-          tagName: ${{ github.ref_name }}
+          tagName: ${{ env.RELEASE_TAG }}
+          releaseCommitish: ${{ github.sha }}
           releaseName: MarkPDF ${{ steps.release_metadata.outputs.version }}
           releaseBody: ${{ steps.release_metadata.outputs.body }}
           releaseDraft: true
@@ -82,7 +93,7 @@ jobs:
           ./scripts/verify-asr-link.ps1
           ./scripts/write-checksums.ps1
           $checksums = Join-Path $env:CARGO_TARGET_DIR 'release/bundle/nsis/SHA256SUMS.txt'
-          gh release upload "$env:GITHUB_REF_NAME" "$checksums" --repo "$env:GITHUB_REPOSITORY" --clobber
+          gh release upload "$env:RELEASE_TAG" "$checksums" --repo "$env:GITHUB_REPOSITORY" --clobber
       - name: Retain installer and checksum as workflow artifacts
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
@@ -94,7 +105,9 @@ jobs:
           retention-days: 14
 
   # Runs after the Windows job so the draft release it created already exists.
+  # Manual runs leave a Windows draft ready for the locally signed/notarized Mac package.
   release-macos:
+    if: github.event_name == 'push'
     name: macOS disk image
     needs: release
     runs-on: macos-15
@@ -127,7 +140,7 @@ jobs:
           key: macos-arm64-asr-only-rust-1.98.1-${{ hashFiles('app/src-tauri/Cargo.lock', 'app/src-tauri/vendor/sherpa-onnx-sys/build.rs') }}
       - name: Check tag, manifests and release notes
         id: release_metadata
-        run: node scripts/check-release-version.mjs --tag "$GITHUB_REF_NAME" --github-output
+        run: node scripts/check-release-version.mjs --tag "$RELEASE_TAG" --github-output
       - name: Test, build the Apple silicon disk image, audit the native link
         run: ./scripts/build-macos.sh --target aarch64-apple-darwin
       - name: Add disk image and checksum to the draft release
@@ -136,7 +149,7 @@ jobs:
           RELEASE_VERSION: ${{ steps.release_metadata.outputs.version }}
         run: |
           cd "$CARGO_TARGET_DIR/aarch64-apple-darwin/release/bundle/dmg"
-          gh release upload "$GITHUB_REF_NAME" "MarkPDF_${RELEASE_VERSION}_aarch64.dmg" SHA256SUMS-macos.txt --repo "$GITHUB_REPOSITORY" --clobber
+          gh release upload "$RELEASE_TAG" "MarkPDF_${RELEASE_VERSION}_aarch64.dmg" SHA256SUMS-macos.txt --repo "$GITHUB_REPOSITORY" --clobber
       - name: Retain disk image and checksum as workflow artifacts
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
@@ -149,6 +162,7 @@ jobs:
 
   # Public only once every platform's installer and checksum are attached.
   publish:
+    if: github.event_name == 'push'
     name: Publish the completed release
     needs: [release, release-macos]
     runs-on: ubuntu-24.04
@@ -158,4 +172,4 @@ jobs:
     steps:
       - env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false
+        run: gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false

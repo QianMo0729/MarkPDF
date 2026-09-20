@@ -1,7 +1,7 @@
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { S } from "../../core/strings";
 import { codexChat } from "../../platform/codex";
-import { useSettings, type LlmApiFormat } from "../../stores/settings";
+import { useSettings, type LlmApiFormat, type Settings } from "../../stores/settings";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -75,10 +75,11 @@ function provider() {
 }
 
 /** Codex needs no address or key: the app-server holds the ChatGPT login. */
-export function isLlmConfigured(): boolean {
-  if (provider().kind === "codex") return true;
-  const c = config();
-  return !!(c.baseUrl && c.apiKey && c.model);
+export function isLlmConfigured(
+  settings: Pick<Settings, "llmProvider" | "llmBaseUrl" | "llmApiKey" | "llmModel"> = useSettings.getState().settings,
+): boolean {
+  if (settings.llmProvider === "codex") return true;
+  return !!(settings.llmBaseUrl.trim() && settings.llmApiKey.trim() && settings.llmModel.trim());
 }
 
 /** Codex is a stateless one-turn call: system prompt as base instructions, the rest joined as the user message. */

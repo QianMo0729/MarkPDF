@@ -15,6 +15,7 @@
   border-bottom: 1px solid var(--border);
 }
 .session-title-wrap {
+  min-width: 0;
   justify-content: center;
   gap: 8px;
 }
@@ -147,6 +148,7 @@
 }
 .deck-recordings-bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   padding: 8px 16px;
@@ -155,7 +157,7 @@
   font-size: 13px;
 }
 .deck-recordings-bar label { flex-shrink: 0; }
-.deck-recordings-bar select { width: min(440px, 100%); min-width: 0; }
+.deck-recordings-bar select { flex: 1 1 240px; max-width: 440px; min-width: 0; }
 .deck-recordings-bar .btn { flex-shrink: 0; }
 @media (max-width: 700px) {
   .deck-recordings-bar { flex-wrap: wrap; gap: 8px; }

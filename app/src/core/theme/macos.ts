@@ -1,9 +1,8 @@
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { isMac } from "../../platform/os";
 
 /**
  * The parts of the macOS look that CSS alone cannot express (see macos.css):
- * the platform stamp, the accent color from System Settings, and full screen.
+ * the platform stamp and the accent color from System Settings.
  */
 export function installMacAppearance(): void {
   if (!isMac) return;
@@ -25,13 +24,4 @@ export function installMacAppearance(): void {
   // pick another one, which they do in another app: re-read on return.
   window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", syncAccent);
   window.addEventListener("focus", syncAccent);
-
-  // Full screen hides the window buttons, so the toolbar takes their room back.
-  const syncFullscreen = () =>
-    void getCurrentWindow()
-      .isFullscreen()
-      .then((on) => root.toggleAttribute("data-fullscreen", on))
-      .catch(() => undefined);
-  syncFullscreen();
-  window.addEventListener("resize", syncFullscreen);
 }

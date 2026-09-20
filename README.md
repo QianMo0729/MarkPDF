@@ -1,22 +1,22 @@
 # MarkPDF
 
-**[下载 Windows 安装包（.exe）](https://github.com/QianMo0729/MarkPDF/releases/download/v0.1.3/MarkPDF_0.1.3_x64-setup.exe)** · **[下载 macOS 安装包（Apple 芯片）](https://github.com/QianMo0729/MarkPDF/releases/download/v0.1.3/MarkPDF_0.1.3_aarch64.dmg)** · [所有版本](https://github.com/QianMo0729/MarkPDF/releases) · [v0.1.3 更新说明](docs/RELEASE_NOTES_0.1.3.md)
+**[下载 Windows 安装包（.exe）](https://github.com/QianMo0729/MarkPDF/releases/download/v0.1.4/MarkPDF_0.1.4_x64-setup.exe)** · **[下载 macOS 安装包（Apple 芯片）](https://github.com/QianMo0729/MarkPDF/releases/download/v0.1.4/MarkPDF_0.1.4_aarch64.dmg)** · [所有版本](https://github.com/QianMo0729/MarkPDF/releases) · [v0.1.4 更新说明](docs/RELEASE_NOTES_0.1.4.md)
 
 把 PDF、Markdown 笔记和课堂录音放在一起。围绕同一份课件阅读、标注、记录和回听，自由安排笔记、转写与翻译面板。
 
 ## 安装与开始使用
 
-1. 打开 [Releases 下载页](https://github.com/QianMo0729/MarkPDF/releases/latest)，在 **Assets** 中下载 `MarkPDF_0.1.3_x64-setup.exe`。
+1. 打开 [Releases 下载页](https://github.com/QianMo0729/MarkPDF/releases/latest)，在 **Assets** 中下载 `MarkPDF_0.1.4_x64-setup.exe`。
 2. 双击安装包，按安装向导完成安装。使用 MarkPDF **不需要安装 Node.js 或 Rust**。若电脑缺少 WebView2，安装器会联网下载所需运行组件。
-3. 新建课程并导入 PDF，即可阅读和记笔记。需要录音时，在该 PDF 顶部点击「新增录音」。
+3. 新建课程并导入 PDF，即可阅读和记笔记。需要录音时，在该 PDF 顶部点击「新建录音」，也可以选择已有录音后点击「继续录音」。
 
-当前安装包未进行代码签名，Windows 可能显示 SmartScreen 提示。请确认下载来源为本仓库的 Releases 页面。
+Windows 安装包未进行代码签名，Windows 可能显示 SmartScreen 提示。请确认下载来源为本仓库的 Releases 页面。
 
 ### macOS
 
-macOS 版（Apple 芯片，macOS 11 及以上）可从 [Releases 下载页](https://github.com/QianMo0729/MarkPDF/releases/latest) 下载 `MarkPDF_0.1.3_aarch64.dmg`。打开 `.dmg`，把 MarkPDF 拖入“应用程序”。也可以[从源码构建](docs/BUILDING.md#macos)。
+macOS 版（Apple 芯片，macOS 11 及以上）可从 [Releases 下载页](https://github.com/QianMo0729/MarkPDF/releases/latest) 下载 `MarkPDF_0.1.4_aarch64.dmg`。打开 `.dmg`，把 MarkPDF 拖入“应用程序”。也可以[从源码构建](docs/BUILDING.md#macos)。
 
-- 应用未经 Apple 公证。若 `.dmg` 是从网上下载的，首次打开会被拦下：到“系统设置 → 隐私与安全性”点“仍要打开”。
+- 发布页提供的 macOS 安装包已使用 Developer ID 签名并通过 Apple 公证；应用和 DMG 均附带公证票据。
 - 首次录音时系统会询问麦克风权限；拒绝后可在“系统设置 → 隐私与安全性 → 麦克风”中重新打开。
 - 界面遵循 macOS 的习惯：菜单栏包含全部命令，快捷键用 ⌘（如 ⇧⌘R 开始 / 结束录音、⌘, 打开设置），外观与强调色跟随系统设置。在访达中可用“打开方式”把 PDF 交给 MarkPDF。
 - “打印”会在“预览”中打开带标注的 PDF，按 ⌘P 打印。
@@ -62,5 +62,5 @@ AI 翻译、解释和上下文纠错会将相应文本发送到你配置的服�
 ## 开发与反馈
 
 - [从源码构建](docs/BUILDING.md)
-- [v0.1.3 更新说明](docs/RELEASE_NOTES_0.1.3.md)
+- [v0.1.4 更新说明](docs/RELEASE_NOTES_0.1.4.md)
 - [提交问题或建议](https://github.com/QianMo0729/MarkPDF/issues)

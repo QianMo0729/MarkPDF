@@ -59,7 +59,7 @@ function LlmTextPanel({ kind, api }: IDockviewPanelProps & { kind: TranslateActi
   const target = useSettings((s) => s.settings.translateTarget);
   const mode = useSettings((s) => s.settings.translationMode);
   const setSetting = useSettings((s) => s.set);
-  const configured = useSettings((s) => !!(s.settings.llmBaseUrl.trim() && s.settings.llmApiKey.trim() && s.settings.llmModel.trim()));
+  const configured = useSettings((s) => isLlmConfigured(s.settings));
   const deckId = useSessionUi((s) => s.deckId);
   const page = useViewerState().currentPage;
   const request = useTranslateStore((s) => s.request);

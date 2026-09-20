@@ -2,7 +2,7 @@
 
 ## 直接安装
 
-普通用户从 [GitHub Releases](https://github.com/QianMo0729/MarkPDF/releases/latest) 下载 `MarkPDF_0.1.3_x64-setup.exe`，双击按提示安装即可。无需安装 Node.js、Rust 或 Visual Studio。系统缺少 WebView2 时，安装器会下载其运行时。
+普通用户从 [GitHub Releases](https://github.com/QianMo0729/MarkPDF/releases/latest) 下载 `MarkPDF_0.1.4_x64-setup.exe`，双击按提示安装即可。无需安装 Node.js、Rust 或 Visual Studio。系统缺少 WebView2 时，安装器会下载其运行时。
 
 macOS 用户下载 `MarkPDF_<版本>_aarch64.dmg`（Apple 芯片，macOS 11 及以上），打开后把 MarkPDF 拖入“应用程序”。macOS 版的构建见下文 [macOS](#macos) 一节。
 
@@ -33,7 +33,7 @@ powershell -ExecutionPolicy Bypass -File .\app\scripts\build-windows.ps1
 
 ```text
 app/src-tauri/target-release/release/bundle/nsis/
-  MarkPDF_0.1.3_x64-setup.exe
+  MarkPDF_0.1.4_x64-setup.exe
   SHA256SUMS.txt
 ```
 
@@ -77,7 +77,7 @@ cd MarkPDF
 ```text
 app/src-tauri/target-release/aarch64-apple-darwin/release/bundle/
   macos/MarkPDF.app
-  dmg/MarkPDF_0.1.3_aarch64.dmg
+  dmg/MarkPDF_0.1.4_aarch64.dmg
   dmg/SHA256SUMS-macos.txt
 ```
 
@@ -103,13 +103,15 @@ macOS 专属配置集中在这些文件：
 - `Checks`：分支 push 和 PR 在 Windows 与 macOS 上各执行一遍 npm 锁定安装、版本 / 引擎校验、前端测试 / 构建及 Rust 测试。使用只读仓库权限。
 - `Installer release`：推送 `v<版本>` 标签后，Windows 作业执行同样检查，生成 NSIS 安装器，通过原生导出检查（禁止残留 eSpeak / Piper）并把安装器及 SHA-256 传到草稿 Release；随后 macOS 作业构建 Apple 芯片 `.dmg`，通过同样的原生检查后把磁盘映像和 `SHA256SUMS-macos.txt` 传到同一草稿；两者都成功后才公开 Release。
 
-发布前需要同步 `app/package.json`、`app/package-lock.json`、`app/src-tauri/tauri.conf.json`、`app/src-tauri/Cargo.toml`、`app/src-tauri/Cargo.lock` 的应用版本，并准备 `docs/RELEASE_NOTES_<版本>.md`。工作流检查标签与这些文件一致，再使用该 Markdown 作为 Release 说明。当前版本保持 0.1.3。
+发布前需要同步 `app/package.json`、`app/package-lock.json`、`app/src-tauri/tauri.conf.json`、`app/src-tauri/Cargo.toml`、`app/src-tauri/Cargo.lock` 的应用版本，并准备 `docs/RELEASE_NOTES_<版本>.md`。工作流检查标签与这些文件一致，再使用该 Markdown 作为 Release 说明。当前版本保持 0.1.4。
 
-维护者的发布操作示例：
+需要使用本地 Developer ID 签名和公证 macOS 安装包时，在 Actions 中手动运行 `Installer release` 并填写 `v0.1.4`。手动运行只构建和测试 Windows 安装包，并创建草稿 Release；维护者上传已签名、公证的 Mac DMG 和对应校验文件，核验两端检查和附件后再公开。草稿标签对应手动运行时选定的源码提交。
+
+自动构建两端安装包（macOS 为临时签名）的标签发布操作示例：
 
 ```powershell
-git tag v0.1.3
-git push origin v0.1.3
+git tag v0.1.4
+git push origin v0.1.4
 ```
 
 工作流仅发布相关 job 使用 `contents: write`，并使用 GitHub 自动提供的 `GITHUB_TOKEN`；不需要个人 API Key。构建先写入草稿，两个平台的安装包与校验文件都上传成功后才公开；macOS 作业失败时 Release 保持草稿状态。工作流使用已核验并固定提交 SHA 的 GitHub / Tauri 官方 Actions。首次托管运行是否成功，以 Actions 记录和 Release 实际附件为准。

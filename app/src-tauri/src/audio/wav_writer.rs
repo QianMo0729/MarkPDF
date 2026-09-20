@@ -29,7 +29,9 @@ impl WavWriter {
 
     /// Append to an existing WAV (crash recovery / resume after restart).
     pub fn append(path: &Path) -> std::io::Result<Self> {
-        let info = probe(path)?;
+        // An interrupted recording may have PCM beyond the last header patch.
+        // Repair before seeking so continuing never overwrites that saved tail.
+        let info = repair(path)?;
         let mut file = OpenOptions::new().write(true).read(true).open(path)?;
         file.seek(SeekFrom::Start(HEADER_LEN + info.samples * 2))?;
         Ok(Self { file, samples: info.samples, since_patch: 0 })
@@ -193,6 +195,38 @@ mod tests {
         h[24..28].copy_from_slice(&44_100u32.to_le_bytes());
         std::fs::write(&path, h).unwrap();
         assert!(repair(&path).is_err());
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn append_preserves_finalized_audio_and_unpatched_crash_tail() {
+        let dir = std::env::temp_dir().join(format!("markpdf-wav-append-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        for finalized in [false, true] {
+            let path = dir.join(if finalized { "saved.wav" } else { "crashed.wav" });
+            let mut w = WavWriter::create(&path).unwrap();
+            w.write(&vec![123i16; 16_000 * 5]).unwrap();
+            w.write(&vec![-456i16; 16_000 * 2]).unwrap();
+            if finalized { w.finalize().unwrap(); } else { drop(w); }
+            let original_pcm = std::fs::read(&path).unwrap()[44..].to_vec();
+            let mut w = WavWriter::append(&path).unwrap();
+            assert_eq!(w.samples(), 16_000 * 7);
+            w.write(&vec![789i16; 16_000]).unwrap();
+            assert_eq!(w.finalize().unwrap(), 16_000 * 8);
+            let bytes = std::fs::read(&path).unwrap();
+            assert_eq!(&bytes[44..44 + original_pcm.len()], original_pcm.as_slice());
+            assert_eq!(&bytes[44 + original_pcm.len()..], vec![789i16.to_le_bytes(); 16_000].concat());
+            assert_eq!(probe(&path).unwrap().duration_ms, 8000);
+        }
+        let missing = dir.join("missing.wav");
+        assert!(WavWriter::append(&missing).is_err());
+        assert!(!missing.exists());
+        let foreign = dir.join("foreign.wav");
+        let mut bytes = header(0);
+        bytes[24..28].copy_from_slice(&44_100u32.to_le_bytes());
+        std::fs::write(&foreign, bytes).unwrap();
+        assert!(WavWriter::append(&foreign).is_err());
+        assert_eq!(std::fs::read(&foreign).unwrap(), bytes);
         std::fs::remove_dir_all(&dir).ok();
     }
 

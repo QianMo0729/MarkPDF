@@ -697,13 +697,8 @@
   font-size: 14px;
   line-height: 18px;
 }
-/* Full screen has no window buttons to make room for. */
-:root[data-platform="macos"][data-fullscreen] .session-top {
-  padding-left: 14px;
-}
-:root[data-platform="macos"][data-fullscreen] .nav-rail {
-  padding-top: 14px;
-}
+/* Keep the traffic-light space during full-screen transitions too. Native
+   controls can reappear before WebKit receives the final resize notification. */
 :root[data-platform="macos"] .deck-recordings-bar {
   padding: 2px 14px 10px;
   border-bottom: none;

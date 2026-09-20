@@ -5,12 +5,13 @@ import { join } from "@tauri-apps/api/path";
 import { useLayoutClass } from "../../core/layout/breakpoints";
 import { S } from "../../core/strings";
 import { useContextMenu } from "../../core/ui/ContextMenu";
-import { ConfirmDialog } from "../../core/ui/Dialog";
+import { ConfirmDialog, Dialog } from "../../core/ui/Dialog";
 import { Icon } from "../../core/ui/Icon";
 import { PromptDialog } from "../../core/ui/PromptDialog";
 import { toast } from "../../core/ui/Toast";
 import { fmtDateTime, fmtDuration } from "../../core/utils/time";
 import { useLiveQuery } from "../../data/db/live";
+import type { SessionRow } from "../../data/db/schema";
 import { listAnnotations } from "../../data/db/repos/annotations";
 import { getDeck, getDeckPages, updateDeck } from "../../data/db/repos/decks";
 import { getSession, listSessionsForDeck, updateSession } from "../../data/db/repos/sessions";
@@ -142,6 +143,8 @@ export function SessionScreen({ kind }: Props) {
   const deck = { ...deckQuery, data: deckQuery.data?.id === effectiveDeckId ? deckQuery.data : null };
   const activeDeckId = useRef(effectiveDeckId);
   activeDeckId.current = effectiveDeckId;
+  const activeRecordingId = useRef(sessionId);
+  activeRecordingId.current = sessionId;
   useEffect(() => {
     activeDeckId.current = effectiveDeckId;
     return () => { activeDeckId.current = ""; };
@@ -199,6 +202,8 @@ export function SessionScreen({ kind }: Props) {
   // Deck reader → record button: a class on this deck, opened at the current page, recording at once.
   const creatingRecording = useRef(false);
   const [creating, setCreating] = useState(false);
+  const [recordingChoice, setRecordingChoice] = useState<SessionRow | null>(null);
+  useEffect(() => { setRecordingChoice(null); }, [effectiveDeckId, sessionId]);
   const startClass = async () => {
     const active = useRecording.getState();
     if (!deck.data || creatingRecording.current || active.status !== "idle" || active.starting) return;
@@ -680,6 +685,54 @@ export function SessionScreen({ kind }: Props) {
   const currentRecording = session.data?.id === sessionId ? session.data : null;
   const recordingOptions = currentRecording && !recordings.some((s) => s.id === currentRecording.id)
     ? [currentRecording, ...recordings] : recordings;
+  const continuableRecording = currentRecording?.started_at ? currentRecording : recordings[0] ?? null;
+  const requestRecording = () => {
+    if (creatingRecording.current || rec.status !== "idle" || rec.starting || !deck.data) return;
+    if (continuableRecording) setRecordingChoice(continuableRecording);
+    else void startClass();
+  };
+  const continueClass = async (selected: SessionRow) => {
+    const active = useRecording.getState();
+    if (selected.deck_id !== effectiveDeckId || creatingRecording.current || active.starting) return;
+    if (active.status === "paused" && active.sessionId === selected.id) {
+      try { await active.resume(); } catch (e) { toast(S.errors.recordingStart(String(e)), "error"); }
+      return;
+    }
+    if (active.status !== "idle") return;
+    const previousSelection = sessionId;
+    const initialPage = viewer.currentPage;
+    creatingRecording.current = true;
+    setCreating(true);
+    setRecordingChoice(null);
+    let playbackUnloaded = false;
+    try {
+      await useNoteEditor.getState().flush();
+      const recorder = useRecording.getState();
+      if (activeDeckId.current !== selected.deck_id || activeRecordingId.current !== previousSelection
+          || recorder.status !== "idle" || recorder.starting) return;
+      if (!recorder.attach(selected.id, selected.deck_id)) return;
+      pb.unload();
+      playbackUnloaded = true;
+      await recorder.start(initialPage, { append: true });
+      if (activeDeckId.current === selected.deck_id && useRecording.getState().status !== "idle") {
+        navigate(`/deck/${selected.deck_id}?recording=${selected.id}`, { replace: true });
+      }
+    } catch (e) {
+      toast(S.errors.recordingStart(String(e)), "error");
+    } finally {
+      // Missing audio / microphone denial must leave the original replay usable.
+      if (playbackUnloaded && useRecording.getState().status === "idle"
+          && activeDeckId.current === selected.deck_id && activeRecordingId.current === previousSelection
+          && currentRecording?.local_wav_path) {
+        const saved = await getSession(currentRecording.id).catch(() => null);
+        await pb.load(currentRecording.id, currentRecording.local_wav_path,
+          saved?.duration_ms ?? currentRecording.duration_ms ?? 0, settings.playbackSpeed)
+          .catch((e) => toast(S.errors.generic(String(e)), "error"));
+      }
+      creatingRecording.current = false;
+      setCreating(false);
+    }
+  };
   const chooseRecording = async (id: string) => {
     if (rec.status !== "idle" || rec.starting || creating) return;
     try {
@@ -750,8 +803,11 @@ export function SessionScreen({ kind }: Props) {
               onClick={() => setConfirmDelete(true)}><Icon name="delete" size={18} /></button>
           </>
         )}
+        {continuableRecording && <button className="btn btn-outlined"
+          disabled={creating || rec.starting || rec.status === "recording" || recordingElsewhere}
+          onClick={() => void continueClass(continuableRecording)}><Icon name="mic" size={18} />{S.session.continueRecording}</button>}
         <button className="btn btn-outlined" disabled={!deck.data || rec.status !== "idle" || rec.starting || creating}
-          onClick={() => void startClass()}><Icon name="mic" size={18} />{creating ? "准备中…" : "新增录音"}</button>
+          onClick={() => void startClass()}><Icon name="add" size={18} />{creating ? "准备中…" : "新建录音"}</button>
       </div>}
 
       <div className="session-body">
@@ -763,7 +819,8 @@ export function SessionScreen({ kind }: Props) {
         )}
         <div className="session-center">
           <SlideToolbar
-            onStartClass={kind === "deck" ? startClass : undefined}
+            onStartClass={kind === "deck" ? requestRecording : undefined}
+            recordingDisabled={creating || recordingElsewhere || !deck.data}
             onSearch={() => {
               setDockOpen(true);
               requestFocus("search");
@@ -862,6 +919,14 @@ export function SessionScreen({ kind }: Props) {
           navigate(`/deck/${effectiveDeckId}?recording=none`, { replace: true });
         }}
       />
+      <Dialog open={recordingChoice !== null} title="继续录音还是新建录音？" onClose={() => setRecordingChoice(null)}
+        actions={<>
+          <button className="btn btn-text" onClick={() => setRecordingChoice(null)}>{S.common.cancel}</button>
+          <button className="btn btn-outlined" onClick={() => { setRecordingChoice(null); void startClass(); }}>新建录音</button>
+          <button className="btn btn-filled" autoFocus onClick={() => { if (recordingChoice) void continueClass(recordingChoice); }}>{S.session.continueRecording}</button>
+        </>}>
+        <p className="body text2">继续录音会接在“{recordingChoice?.title}”的末尾，保留已有内容；新建录音会单独保存。</p>
+      </Dialog>
       <ConfirmDialog
         open={recordingElsewhere}
         title={S.session.recordingElsewhereTitle}
