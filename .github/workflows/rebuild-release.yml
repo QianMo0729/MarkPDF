@@ -1,0 +1,135 @@
+name: Rebuild existing release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to rebuild from the selected branch
+        required: true
+        default: v0.1.3
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-refs/tags/${{ inputs.tag }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_TAG: ${{ inputs.tag }}
+
+jobs:
+  metadata:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+      old_tag: ${{ steps.metadata.outputs.old_tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Validate the version and existing release
+        id: metadata
+        working-directory: app
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node scripts/check-release-version.mjs --tag "$RELEASE_TAG" --github-output
+          test "$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" = false
+          echo "old_tag=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" --jq .object.sha)" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: metadata
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2022
+            platform: windows-x64
+            cache_prefix: windows
+            bundle: release/bundle/nsis
+          - os: macos-15
+            platform: macos-arm64
+            cache_prefix: macos-arm64
+            bundle: aarch64-apple-darwin/release/bundle/dmg
+    name: Rebuild ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    env:
+      RUSTUP_TOOLCHAIN: '1.98.1'
+      CARGO_BUILD_JOBS: '2'
+      CARGO_TARGET_DIR: ${{ github.workspace }}/app/src-tauri/target-release
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24.18.0'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.98.1 --profile minimal
+      - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            app/src-tauri/target-release
+          key: ${{ matrix.cache_prefix }}-asr-only-rust-1.98.1-${{ hashFiles('app/src-tauri/Cargo.lock', 'app/src-tauri/vendor/sherpa-onnx-sys/build.rs') }}
+      - name: Test and build Windows installer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/build-windows.ps1
+      - name: Test and build macOS disk image
+        if: runner.os == 'macOS'
+        run: ./scripts/build-macos.sh --target aarch64-apple-darwin
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: rebuild-${{ matrix.platform }}
+          path: |
+            app/src-tauri/target-release/${{ matrix.bundle }}/MarkPDF_*.exe
+            app/src-tauri/target-release/${{ matrix.bundle }}/MarkPDF_*.dmg
+            app/src-tauri/target-release/${{ matrix.bundle }}/SHA256SUMS*.txt
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    needs: [metadata, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      RELEASE_VERSION: ${{ needs.metadata.outputs.version }}
+      OLD_TAG: ${{ needs.metadata.outputs.old_tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Download and verify both completed installers
+        run: |
+          gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --name rebuild-windows-x64 --dir installers/windows
+          gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --name rebuild-macos-arm64 --dir installers/macos
+          (cd installers/windows && sha256sum --check SHA256SUMS.txt)
+          (cd installers/macos && sha256sum --check SHA256SUMS-macos.txt)
+          test -s "installers/windows/MarkPDF_${RELEASE_VERSION}_x64-setup.exe"
+          test -s "installers/macos/MarkPDF_${RELEASE_VERSION}_aarch64.dmg"
+      - name: Replace release assets and point the tag at the tested sources
+        run: |
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" --jq .object.sha)" = "$OLD_TAG"
+          gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --clobber \
+            "installers/windows/MarkPDF_${RELEASE_VERSION}_x64-setup.exe" installers/windows/SHA256SUMS.txt \
+            "installers/macos/MarkPDF_${RELEASE_VERSION}_aarch64.dmg" installers/macos/SHA256SUMS-macos.txt
+          new_tag=$(gh api --method POST "repos/$GITHUB_REPOSITORY/git/tags" \
+            -f tag="$RELEASE_TAG" -f message="MarkPDF $RELEASE_VERSION rebuilt from $GITHUB_SHA" \
+            -f object="$GITHUB_SHA" -f type=commit --jq .sha)
+          gh api --method PATCH "repos/$GITHUB_REPOSITORY/git/refs/tags/$RELEASE_TAG" -f sha="$new_tag" -F force=true
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --notes-file "docs/RELEASE_NOTES_${RELEASE_VERSION}.md"

@@ -1,3 +1,4 @@
+import "./streamCompatibility";
 import * as pdfjsLib from "pdfjs-dist";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { readFile } from "@tauri-apps/plugin-fs";
