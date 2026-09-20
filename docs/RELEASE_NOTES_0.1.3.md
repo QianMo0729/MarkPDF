@@ -10,6 +10,7 @@
 
 ## 新增与改进
 
+- 修复 macOS 从 Finder 或 Dock 启动时无法发现 Codex / ChatGPT 应用包内 CLI 的问题；支持手动填写 `.app` 路径和以 `~/` 开头的路径。
 - 修复 macOS 26.3 及更早 WebView 导入 PDF 时出现 `TypeError: undefined is not a function` 的问题，同时恢复阅读器文字提取与搜索；已导入失败的文件可重试。
 - Mac 和 Windows 使用新的紫色文档图标，提供透明圆角和各尺寸图标资源。
 - macOS 新增系统菜单栏、⌘ 快捷键、融合标题栏的工具栏、系统字体与强调色适配，支持从访达打开 PDF。

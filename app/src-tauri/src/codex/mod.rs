@@ -137,18 +137,44 @@ fn well_known_bin_dirs(_home: Option<&Path>) -> Vec<PathBuf> {
     Vec::new()
 }
 
+/// Desktop apps also ship a native CLI, but Finder does not add their Resources
+/// directory to PATH. Keep these behind standalone installs as a fallback.
+#[cfg(target_os = "macos")]
+fn macos_app_candidates(home: Option<&Path>) -> Vec<PathBuf> {
+    let mut roots = Vec::new();
+    if let Some(home) = home {
+        roots.push(home.join("Applications"));
+    }
+    roots.push(PathBuf::from("/Applications"));
+    roots.into_iter().flat_map(|root| {
+        ["Codex.app", "ChatGPT.app"].map(|app| root.join(app).join("Contents/Resources/codex"))
+    }).collect()
+}
+
+fn override_candidates(path: &str, home: Option<&Path>) -> Vec<PathBuf> {
+    // Paths entered in the UI do not pass through a shell, so expand ~/ here.
+    let path = path.strip_prefix("~/").and_then(|suffix| home.map(|h| h.join(suffix)))
+        .unwrap_or_else(|| PathBuf::from(path));
+    let mut out = Vec::new();
+    if path.is_dir() {
+        #[cfg(target_os = "macos")]
+        if path.extension().is_some_and(|ext| ext == "app") {
+            out.push(path.join("Contents/Resources/codex"));
+        }
+        out.push(path.join(EXE));
+    } else {
+        out.push(path);
+    }
+    out
+}
+
 /// Everywhere a Codex binary is usually found, most specific first.
 pub fn candidate_paths(override_path: Option<&str>) -> Vec<PathBuf> {
     let mut out: Vec<PathBuf> = Vec::new();
-    if let Some(p) = override_path.map(str::trim).filter(|p| !p.is_empty()) {
-        let p = PathBuf::from(p);
-        if p.is_dir() {
-            out.push(p.join(EXE));
-        } else {
-            out.push(p);
-        }
-    }
     let home = std::env::var_os("USERPROFILE").or_else(|| std::env::var_os("HOME")).map(PathBuf::from);
+    if let Some(p) = override_path.map(str::trim).filter(|p| !p.is_empty()) {
+        out.extend(override_candidates(p, home.as_deref()));
+    }
     if let Some(home) = &home {
         out.push(home.join(".codex").join("bin").join(EXE));
     }
@@ -170,6 +196,8 @@ pub fn candidate_paths(override_path: Option<&str>) -> Vec<PathBuf> {
     for prefix in ["/usr/local/lib/node_modules", "/opt/homebrew/lib/node_modules"] {
         out.extend(npm_vendor_candidates(Path::new(prefix)));
     }
+    #[cfg(target_os = "macos")]
+    out.extend(macos_app_candidates(home.as_deref()));
     out
 }
 
@@ -202,9 +230,13 @@ fn probe_version(path: &Path) -> Result<String, String> {
 }
 
 pub fn locate(override_path: Option<&str>) -> Result<CodexInfo, String> {
+    locate_candidates(candidate_paths(override_path))
+}
+
+fn locate_candidates(candidates: impl IntoIterator<Item = PathBuf>) -> Result<CodexInfo, String> {
     let mut seen = std::collections::HashSet::new();
     let mut last_err = String::from("codex_not_found");
-    for p in candidate_paths(override_path) {
+    for p in candidates {
         if !seen.insert(p.clone()) || !p.is_file() {
             continue;
         }
@@ -790,18 +822,104 @@ mod tests {
         assert!(dir[0].ends_with(EXE) || dir[0] == PathBuf::from("C:/tools"));
     }
 
+    struct DiscoveryFixture(PathBuf);
+
+    impl DiscoveryFixture {
+        fn new() -> Self {
+            let root = std::env::temp_dir().join(format!(
+                "markpdf-codex-discovery-{}-{}",
+                std::process::id(),
+                std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos(),
+            ));
+            std::fs::create_dir_all(&root).unwrap();
+            Self(root)
+        }
+
+        #[cfg(target_os = "macos")]
+        fn cli(&self, relative_path: &str, script: &str) -> PathBuf {
+            use std::os::unix::fs::PermissionsExt;
+            let path = self.0.join(relative_path);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(&path, format!("#!/bin/sh\n{script}\n")).unwrap();
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+            path
+        }
+    }
+
+    impl Drop for DiscoveryFixture {
+        fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.0); }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn discovers_desktop_cli_without_a_path_entry() {
+        // Each app can be the only installation. The fake home includes spaces,
+        // as a manually selected application directory often does on macOS.
+        for app in ["Codex.app", "ChatGPT.app"] {
+            let fixture = DiscoveryFixture::new();
+            let home = fixture.0.join("Test User");
+            let bin = fixture.cli(
+                &format!("Test User/Applications/{app}/Contents/Resources/codex"),
+                "printf 'codex-cli 0.155.0\\n'",
+            );
+            let found = locate_candidates(macos_app_candidates(Some(&home))).unwrap();
+            assert_eq!(Path::new(&found.path), bin);
+            assert_eq!(found.version, "0.155.0");
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn system_app_bundles_are_fallbacks_after_standalone_installs() {
+        let apps = macos_app_candidates(None);
+        assert_eq!(apps, vec![
+            PathBuf::from("/Applications/Codex.app/Contents/Resources/codex"),
+            PathBuf::from("/Applications/ChatGPT.app/Contents/Resources/codex"),
+        ]);
+        let candidates = candidate_paths(None);
+        assert!(candidates.ends_with(&apps));
+        let standalone = candidates.iter().position(|p| p == Path::new("/opt/homebrew/bin/codex")).unwrap();
+        assert!(standalone < candidates.len() - apps.len());
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn manual_paths_accept_app_bundles_tilde_and_bin_directories() {
+        let fixture = DiscoveryFixture::new();
+        let bin = fixture.cli(
+            "Applications/My Codex.app/Contents/Resources/codex",
+            "printf 'codex-cli 0.155.0\\n'",
+        );
+        let bundle = fixture.0.join("Applications/My Codex.app");
+        let candidates = candidate_paths(Some(bundle.to_str().unwrap()));
+        assert_eq!(candidates[0], bin);
+        for path in [
+            "~/Applications/My Codex.app".to_string(),
+            bin.to_string_lossy().into_owned(),
+            bin.parent().unwrap().to_string_lossy().into_owned(),
+        ] {
+            let found = locate_candidates(override_candidates(&path, Some(&fixture.0))).unwrap();
+            assert_eq!(Path::new(&found.path), bin);
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn broken_app_does_not_hide_another_working_cli() {
+        let fixture = DiscoveryFixture::new();
+        fixture.cli("Applications/Codex.app/Contents/Resources/codex", "exit 1");
+        let bin = fixture.cli(
+            "Applications/ChatGPT.app/Contents/Resources/codex",
+            "printf 'codex-cli 0.155.0\\n'",
+        );
+        let found = locate_candidates(macos_app_candidates(Some(&fixture.0))).unwrap();
+        assert_eq!(Path::new(&found.path), bin);
+    }
+
     #[test]
     fn npm_discovery_finds_nested_hoisted_and_legacy_binaries() {
-        let root = std::env::temp_dir().join(format!(
-            "markpdf-codex-discovery-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos(),
-        ));
-        struct Fixture(PathBuf);
-        impl Drop for Fixture {
-            fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.0); }
-        }
-        let _fixture = Fixture(root.clone());
+        let fixture = DiscoveryFixture::new();
+        let root = &fixture.0;
         let platform = match std::env::consts::OS {
             "windows" => "win32",
             "macos" => "darwin",

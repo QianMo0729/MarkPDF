@@ -45,7 +45,7 @@ macOS 版（Apple 芯片，macOS 11 及以上）可从 [Releases 下载页](http
 
 ### 用 ChatGPT 账号（Codex）
 
-在「设置 → 翻译与 AI → 接入方式」选择 **ChatGPT 账号（Codex）**，需要本机已安装 Codex CLI（`npm install -g @openai/codex`，或填写 codex 可执行文件路径；macOS 上会自动查找 Homebrew、nvm 等常见安装位置）。点击「登录 ChatGPT」在浏览器完成登录后，可从列表里选择模型和推理强度，翻译、解释和纠错都走你的订阅额度，不需要 API Key。登录与令牌由 Codex 自己保存在 `~/.codex`，MarkPDF 不保存凭据。OpenAI 目前允许第三方工具通过 Codex 登录使用订阅，但条款没有明文承诺，政策可能变化。
+在「设置 → 翻译与 AI → 接入方式」选择 **ChatGPT 账号（Codex）**，需要本机有可用的 Codex CLI（可运行 `npm install -g @openai/codex` 安装，或填写 codex 可执行文件路径）。macOS 会自动查找 Homebrew、nvm 等常见安装位置，以及 `/Applications`、`~/Applications` 中 Codex / ChatGPT 应用包内的 CLI；也支持手动填写 `.app` 路径或以 `~/` 开头的路径。点击「登录 ChatGPT」在浏览器完成登录后，可从列表里选择模型和推理强度，翻译、解释和纠错都走你的订阅额度，不需要 API Key。登录与令牌由 Codex 自己保存在 `~/.codex`，MarkPDF 不保存凭据。OpenAI 目前允许第三方工具通过 Codex 登录使用订阅，但条款没有明文承诺，政策可能变化。
 
 ### 使用自己的 AI 服务
 
