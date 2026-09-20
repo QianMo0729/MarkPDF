@@ -26,6 +26,10 @@
 - Windows：`%APPDATA%\com.markpdf.app\`。
 - macOS：`~/Library/Application Support/com.markpdf.app/`。
 
-Windows 安装包未进行代码签名；macOS 使用 ad-hoc 签名，尚未经过 Apple 公证。首次打开网上下载的应用时，系统可能要求确认来源；macOS 可在“系统设置 → 隐私与安全性”中允许打开。首次录音需要允许麦克风访问。
+macOS 应用和 DMG 已使用 Developer ID Application 证书签名，通过 Apple 公证并附加公证票据；Gatekeeper 验证通过。Windows 安装包未进行代码签名。首次录音需要允许麦克风访问。
 
 本次 macOS 安装包面向 Apple 芯片，未提供经过发布验证的 Intel 安装包。离线模型首次下载需要网络；AI 功能需配置相应服务或登录账号。
+
+## macOS 重建记录
+
+本次 Mac 安装包基于提交 [`989a71f`](https://github.com/QianMo0729/MarkPDF/commit/989a71fd8aa76e36379c29757bb04b9838e611d4) 重建，包含 CLI 自动发现修复。Windows 安装包沿用原有 0.1.3 文件。
